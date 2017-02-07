@@ -1,0 +1,29 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 24
+    buildToolsVersion '25.0.0'
+
+    defaultConfig {
+        applicationId "com.kanedias.vanilla.coverfetch"
+        minSdkVersion 14
+        targetSdkVersion 24
+        versionCode 3
+        versionName "1.0.2"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        debug {
+        }
+
+        release {
+            zipAlignEnabled true
+        }
+    }
+
+
+}
+
+dependencies {
+}

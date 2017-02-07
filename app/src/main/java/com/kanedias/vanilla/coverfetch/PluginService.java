@@ -1,0 +1,181 @@
+/*
+ * Copyright (C) 2017 Oleg Chernovskiy <adonai@xaker.ru>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+package com.kanedias.vanilla.coverfetch;
+
+import android.app.Service;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.ResolveInfo;
+import android.net.Uri;
+import android.os.IBinder;
+import android.text.TextUtils;
+import android.util.Log;
+
+import java.util.List;
+
+import static com.kanedias.vanilla.coverfetch.PluginConstants.*;
+
+/**
+ * Main service of Plugin system.
+ * This service must be able to handle ACTION_WAKE_PLUGIN, ACTION_REQUEST_PLUGIN_PARAMS and ACTION_LAUNCH_PLUGIN
+ * intents coming from VanillaMusic.
+ * <p/>
+ * Casual conversation looks like this:
+ * <pre>
+ *     VanillaMusic                                 Plugin
+ *          |                                         |
+ *          |       ACTION_WAKE_PLUGIN broadcast      |
+ *          |---------------------------------------->| (plugin init if just installed)
+ *          |                                         |
+ *          | ACTION_REQUEST_PLUGIN_PARAMS broadcast  |
+ *          |---------------------------------------->| (this is handled by BroadcastReceiver first)
+ *          |                                         |
+ *          |      ACTION_HANDLE_PLUGIN_PARAMS        |
+ *          |<----------------------------------------| (plugin answer with name and desc)
+ *          |                                         |
+ *          |           ACTION_LAUNCH_PLUGIN          |
+ *          |---------------------------------------->| (plugin is allowed to show window)
+ * </pre>
+ *
+ * @see PluginConstants
+ * @see CoverShowActivity
+ *
+ * @author Oleg Chernovskiy
+ */
+public class PluginService extends Service {
+
+    public static final String PLUGIN_TAG_EDIT_PKG = "com.kanedias.vanilla.audiotag";
+
+    private Intent mOriginalIntent;
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent == null) {
+            return START_NOT_STICKY;
+        }
+
+        final String action = intent.getAction();
+        switch (action) {
+            case ACTION_WAKE_PLUGIN:
+                Log.i(LOG_TAG, "Plugin enabled!");
+                break;
+            case ACTION_REQUEST_PLUGIN_PARAMS:
+                handleRequestPluginParams();
+                break;
+            case ACTION_LAUNCH_PLUGIN:
+                handleLaunchPlugin(intent);
+                break;
+            default:
+                Log.e(LOG_TAG, "Unknown intent action received!" + action);
+        }
+        return START_NOT_STICKY;
+    }
+
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
+
+    public static boolean pluginInstalled(Context ctx, String pkgName) {
+        List<ResolveInfo> resolved = ctx.getPackageManager().queryBroadcastReceivers(new Intent(ACTION_REQUEST_PLUGIN_PARAMS), 0);
+        for (ResolveInfo pkg : resolved) {
+            if (TextUtils.equals(pkg.activityInfo.packageName, pkgName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Sends plugin info back to Vanilla Music service.
+     */
+    private void handleRequestPluginParams() {
+        Intent answer = new Intent(ACTION_HANDLE_PLUGIN_PARAMS);
+        answer.setPackage(VANILLA_PACKAGE_NAME);
+        answer.putExtra(EXTRA_PARAM_PLUGIN_NAME, getString(R.string.cover_fetch));
+        answer.putExtra(EXTRA_PARAM_PLUGIN_APP, getApplicationInfo());
+        answer.putExtra(EXTRA_PARAM_PLUGIN_DESC, getString(R.string.plugin_desc));
+        sendBroadcast(answer);
+    }
+
+    private void handleLaunchPlugin(Intent intent) {
+        if (!intent.hasExtra(EXTRA_PARAM_P2P) && pluginInstalled(this, PLUGIN_TAG_EDIT_PKG)) {
+            // it's user-requested, try to retrieve artwork from the tag first
+            mOriginalIntent = intent; // store intent to reuse it if no artwork is found
+            Intent getCover = new Intent(ACTION_LAUNCH_PLUGIN);
+            getCover.setPackage(PluginService.PLUGIN_TAG_EDIT_PKG);
+            getCover.putExtra(EXTRA_PARAM_URI, intent.getParcelableExtra(EXTRA_PARAM_URI));
+            getCover.putExtra(EXTRA_PARAM_PLUGIN_APP, getApplicationInfo());
+            getCover.putExtra(EXTRA_PARAM_P2P, P2P_READ_ART); // no extra params needed
+            startService(getCover);
+            return;
+        }
+
+        if (intent.hasExtra(EXTRA_PARAM_P2P)) {
+            handleP2pIntent(intent);
+            return;
+        }
+
+        Intent dialogIntent = new Intent(this, CoverShowActivity.class);
+        dialogIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        dialogIntent.putExtras(intent);
+        startActivity(dialogIntent);
+    }
+
+    /**
+     * This plugin also has P2P functionality with others.
+     * <br/>
+     * Tag plugin - Uses provided field retrieval interface for ARTWORK tag:
+     * <p/>
+     * <pre>
+     *  Cover Fetch Plugin                         Tag Editor Plugin
+     *          |                                         |
+     *          |       P2P intent with artwork request   |
+     *          |---------------------------------------->| (LP also stores original intent)
+     *          |                                         |
+     *          |       P2P intent with artwork response  |
+     *          |<----------------------------------------| (can be null if no embedded artwork found)
+     *          |                                         |
+     *
+     *     At this point cover fetcher plugin starts activity with either
+     *     extras from artwork response (if found) or with original intent
+     * </pre>
+     *
+     * @param intent p2p intent that should be handled
+     */
+    private void handleP2pIntent(Intent intent) {
+        switch (intent.getStringExtra(EXTRA_PARAM_P2P)) {
+            case P2P_READ_ART: // this is a reply on our request for artwork tag
+                Intent dialogIntent = new Intent(this, CoverShowActivity.class);
+                dialogIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+                Uri uri = intent.getData();
+                if (uri != null) {
+                    // start activity with retrieved artwork
+                    dialogIntent.putExtras(intent);
+                    dialogIntent.setData(uri);
+                } else {
+                    // no artwork - start activity in normal mode
+                    dialogIntent.putExtras(mOriginalIntent);
+                    dialogIntent.setData(mOriginalIntent.getData());
+                }
+                startActivity(dialogIntent);
+                break;
+        }
+    }
+}
