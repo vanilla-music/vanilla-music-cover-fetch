@@ -46,7 +46,7 @@ public class CoverArchiveEngine implements CoverEngine {
         try {
             // build query
             // e.g. https://musicbrainz.org/ws/2/release-group/?query=releasegroup:new%20divide%20AND%20artist:linkin%20park&limit=3&fmt=json
-            String releaseGroupQuery = String.format("releasegroup:%s AND artist:%s", albumName, artistName);
+            String releaseGroupQuery = String.format("releasegroup:%s AND artistname:%s", albumName, artistName);
             Uri link = new Uri.Builder()
                     .scheme("https")
                     .authority("musicbrainz.org")
@@ -129,7 +129,7 @@ public class CoverArchiveEngine implements CoverEngine {
         return null;
     }
 
-    // Reads an InputStream and converts it to a String.
+    // Reads an InputStream fully to byte array
     private byte[] readIt(InputStream stream) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         byte[] buffer = new byte[4096];

@@ -164,15 +164,12 @@ public class PluginService extends Service {
                 Intent dialogIntent = new Intent(this, CoverShowActivity.class);
                 dialogIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
-                Uri uri = intent.getData();
-                if (uri != null) {
+                if (intent.hasExtra(EXTRA_PARAM_P2P_VAL)) {
                     // start activity with retrieved artwork
                     dialogIntent.putExtras(intent);
-                    dialogIntent.setData(uri);
                 } else {
                     // no artwork - start activity in normal mode
                     dialogIntent.putExtras(mOriginalIntent);
-                    dialogIntent.setData(mOriginalIntent.getData());
                 }
                 startActivity(dialogIntent);
                 break;

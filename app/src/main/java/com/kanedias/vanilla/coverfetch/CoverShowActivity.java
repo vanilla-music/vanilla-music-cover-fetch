@@ -28,6 +28,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
+import android.support.copied.FileProvider;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -37,8 +38,12 @@ import android.widget.Toast;
 import android.widget.ViewSwitcher;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.UUID;
 
 import static com.kanedias.vanilla.coverfetch.PluginConstants.*;
 import static com.kanedias.vanilla.coverfetch.PluginService.pluginInstalled;
@@ -78,7 +83,7 @@ public class CoverShowActivity extends Activity {
         // check if this is an answer from tag plugin
         if (TextUtils.equals(getIntent().getStringExtra(EXTRA_PARAM_P2P), P2P_READ_ART)) {
             // already checked this string in service, no need in additional checks
-            Uri imgLink = getIntent().getData();
+            Uri imgLink = getIntent().getParcelableExtra(EXTRA_PARAM_P2P_VAL);
 
             try {
                 ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(imgLink, "r");
@@ -112,6 +117,7 @@ public class CoverShowActivity extends Activity {
 
         Drawable image = new BitmapDrawable(getResources(), raw);
         mCoverImage.setImageDrawable(image);
+        mWriteFileButton.setEnabled(true);
         mSwitcher.showNext();
     }
 
@@ -161,18 +167,50 @@ public class CoverShowActivity extends Activity {
 
         @Override
         public void onClick(View v) {
+            // image must be present because this button enables only after it's downloaded
             Bitmap bitmap = ((BitmapDrawable) mCoverImage.getDrawable()).getBitmap();
             ByteArrayOutputStream stream = new ByteArrayOutputStream();
             bitmap.compress(Bitmap.CompressFormat.PNG, 90, stream);
             byte[] imgData = stream.toByteArray();
-            Intent request = new Intent(ACTION_LAUNCH_PLUGIN);
-            request.setPackage(PluginService.PLUGIN_TAG_EDIT_PKG);
-            request.putExtra(EXTRA_PARAM_URI, getIntent().getParcelableExtra(EXTRA_PARAM_URI));
-            request.putExtra(EXTRA_PARAM_PLUGIN_APP, getApplicationInfo());
-            request.putExtra(EXTRA_PARAM_P2P, P2P_WRITE_ART);
-            request.putExtra(EXTRA_PARAM_P2P_VAL, imgData); // artwork value
-            startService(request);
-            mWriteFileButton.setVisibility(View.GONE);
+
+            Uri uri = null;
+            try {
+                File coversDir = new File(getCacheDir(), "covers");
+                if (!coversDir.exists() && !coversDir.mkdir()) {
+                    Log.e(LOG_TAG, "Couldn't create dir for covers! Path " + getCacheDir());
+                    return;
+                }
+
+                // cleanup old images
+                for (File oldImg : coversDir.listFiles()) {
+                    if (!oldImg.delete()) {
+                        Log.w(LOG_TAG, "Couldn't delete old image file! Path " + oldImg);
+                    }
+                }
+
+                // write artwork to file
+                File coverTmpFile = new File(coversDir, UUID.randomUUID().toString());
+                FileOutputStream fos = new FileOutputStream(coverTmpFile);
+                fos.write(imgData);
+                fos.close();
+
+                // create sharable uri
+                uri = FileProvider.getUriForFile(CoverShowActivity.this, "com.kanedias.vanilla.coverfetch.fileprovider", coverTmpFile);
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                Intent request = new Intent(ACTION_LAUNCH_PLUGIN);
+                request.setPackage(PluginService.PLUGIN_TAG_EDIT_PKG);
+                request.putExtra(EXTRA_PARAM_URI, getIntent().getParcelableExtra(EXTRA_PARAM_URI));
+                request.putExtra(EXTRA_PARAM_PLUGIN_APP, getApplicationInfo());
+                request.putExtra(EXTRA_PARAM_P2P, P2P_WRITE_ART);
+                if (uri != null) { // artwork write succeeded
+                    grantUriPermission(PluginService.PLUGIN_TAG_EDIT_PKG, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    request.putExtra(EXTRA_PARAM_P2P_VAL, uri);
+                }
+                startService(request);
+                mWriteFileButton.setVisibility(View.GONE);
+            }
         }
     }
 }
