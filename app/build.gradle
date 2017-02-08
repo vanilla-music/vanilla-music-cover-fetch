@@ -8,8 +8,8 @@ android {
         applicationId "com.kanedias.vanilla.coverfetch"
         minSdkVersion 14
         targetSdkVersion 24
-        versionCode 3
-        versionName "1.0.2"
+        versionCode 1
+        versionName "1.0.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
