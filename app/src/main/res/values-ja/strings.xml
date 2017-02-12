@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Vanilla Cover Fetcher</string>
+    <string name="cover_fetch">Cover fetch</string>
+    <string name="plugin_desc">曲のアルバムのカバーをダウンロードすることができます</string>
+    <string name="cover_not_found">カバーが見つかりません!</string>
+    <string name="invalid_cover_image_format">カバー画像の形式が正しくありません!</string>
+    <string name="write_to_file">ファイルに書き込み</string>
+</resources>
