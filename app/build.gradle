@@ -37,4 +37,6 @@ android {
 }
 
 dependencies {
+    // SAF storage access utilities
+    compile 'com.android.support:support-core-utils:25.3.1'
 }

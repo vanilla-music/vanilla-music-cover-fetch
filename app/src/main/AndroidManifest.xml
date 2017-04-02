@@ -3,6 +3,7 @@
           xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="true"
@@ -19,7 +20,7 @@
                 android:resource="@xml/shared_filepaths" />
         </provider>
         <service
-            android:name="com.kanedias.vanilla.coverfetch.PluginService"
+            android:name=".PluginService"
             android:enabled="true">
             <intent-filter>
                 <action android:name="ch.blinkenlights.android.vanilla.action.WAKE_PLUGIN"/>
@@ -28,7 +29,7 @@
         </service>
 
         <receiver
-            android:name="com.kanedias.vanilla.coverfetch.PluginQueryBroadcastReceiver"
+            android:name=".PluginQueryBroadcastReceiver"
             android:enabled="true">
             <intent-filter>
                 <action android:name="ch.blinkenlights.android.vanilla.action.REQUEST_PLUGIN_PARAMS"/>
@@ -36,9 +37,13 @@
         </receiver>
 
         <activity
-            android:name="com.kanedias.vanilla.coverfetch.CoverShowActivity"
+            android:name=".CoverShowActivity"
             android:theme="@android:style/Theme.DeviceDefault.Dialog"
             android:excludeFromRecents="true"/>
+        <activity
+                android:name=".SafRequestActivity"
+                android:theme="@android:style/Theme.DeviceDefault.Dialog"
+                android:excludeFromRecents="true"/>
     </application>
 
 </manifest>
