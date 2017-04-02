@@ -51,6 +51,4 @@ public class PluginConstants {
     static final String P2P_READ_ART = "READ_ART";
 
     static final String LOG_TAG = "Vanilla:CoverFetch";
-
-    static final String VANILLA_PACKAGE_NAME = "ch.blinkenlights.android.vanilla";
 }

@@ -17,9 +17,7 @@
 package com.kanedias.vanilla.coverfetch;
 
 import android.app.Activity;
-import android.content.ContentResolver;
 import android.content.Intent;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
@@ -39,7 +37,6 @@ import android.widget.ViewSwitcher;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -197,7 +194,7 @@ public class CoverShowActivity extends Activity {
                 // create sharable uri
                 uri = FileProvider.getUriForFile(CoverShowActivity.this, "com.kanedias.vanilla.coverfetch.fileprovider", coverTmpFile);
             } catch (IOException e) {
-                e.printStackTrace();
+                Log.e(LOG_TAG, "Couldn't share private cover image file to tag editor!", e);
             } finally {
                 Intent request = new Intent(ACTION_LAUNCH_PLUGIN);
                 request.setPackage(PluginService.PLUGIN_TAG_EDIT_PKG);

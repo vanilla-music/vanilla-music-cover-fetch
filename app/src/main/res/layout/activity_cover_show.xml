@@ -34,6 +34,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:scaleType="centerInside"
+                android:adjustViewBounds="true"
                 android:id="@+id/cover_image"/>
 
         </ViewSwitcher>
