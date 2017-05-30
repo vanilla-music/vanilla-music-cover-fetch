@@ -21,6 +21,7 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
@@ -31,6 +32,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.content.FileProvider;
 import android.support.v4.provider.DocumentFile;
@@ -38,8 +40,8 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
-import android.view.Window;
 import android.widget.*;
+import com.kanedias.vanilla.plugins.PluginConstants;
 import com.kanedias.vanilla.plugins.PluginUtils;
 import com.kanedias.vanilla.plugins.saf.SafRequestActivity;
 
@@ -234,7 +236,7 @@ public class CoverShowActivity extends Activity {
     /**
      * CLick listener for P2P integration, sends intent to write retrieved cover to local file tag
      */
-    public void persistAsFile() {
+    public void persistToFile() {
         // image must be present because this button enables only after it's downloaded
         Bitmap bitmap = ((BitmapDrawable) mCoverImage.getDrawable()).getBitmap();
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
@@ -303,7 +305,7 @@ public class CoverShowActivity extends Activity {
         byte[] imgData = stream.toByteArray();
 
         File folderTarget = new File(mediaFile.getParent(), "folder.jpg");
-        if (isSafNeeded(folderTarget)) {
+        if (isSafNeeded(mediaFile)) {
             if (mPrefs.contains(PREF_SDCARD_URI)) {
                 // we already got the permission!
                 writeThroughSaf(imgData, mediaFile, folderTarget.getName());
@@ -311,10 +313,11 @@ public class CoverShowActivity extends Activity {
             }
 
             // request SAF permissions in SAF activity
-            Intent dialogIntent = new Intent(CoverShowActivity.this, SafRequestActivity.class);
-            dialogIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            dialogIntent.putExtras(getIntent());
-            startActivity(dialogIntent);
+            Intent safIntent = new Intent(CoverShowActivity.this, SafRequestActivity.class);
+            safIntent.putExtra(PluginConstants.EXTRA_PARAM_PLUGIN_APP, getApplicationInfo());
+            safIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            safIntent.putExtras(getIntent());
+            startActivity(safIntent);
             // it will pass us URI back after the work is done
         } else {
             writeThroughFile(imgData, mediaFile, folderTarget);
@@ -421,6 +424,36 @@ public class CoverShowActivity extends Activity {
     }
 
     /**
+     * This is requested in {@link SelectWriteAction#onClick(View)} case 0.
+     *
+     * Catch it back from {@link PluginUtils#checkAndRequestPermissions(Activity, String)} here.
+     * If user declined our request, just do nothing. If not, continue processing and persist the file.
+     *
+     * @param requestCode request code that was entered in {@link Activity#requestPermissions(String[], int)}
+     * @param permissions permission array that was entered in {@link Activity#requestPermissions(String[], int)}
+     * @param grantResults results of permission request. Indexes of permissions array are linked with these
+     *
+     * @see SelectWriteAction
+     * @see PluginUtils
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode != PERMISSIONS_REQUEST_CODE) {
+            return;
+        }
+
+        for (int i = 0; i < permissions.length; ++i) {
+            if (TextUtils.equals(permissions[i], WRITE_EXTERNAL_STORAGE)
+                    && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                // continue persist process started in Write... -> folder.jpg
+                persistAsFolderJpg();
+            }
+        }
+    }
+
+    /**
      * Listener which invokes action dialog on click with selection on where to write the retrieved cover
      */
     private class SelectWriteAction implements View.OnClickListener {
@@ -449,7 +482,7 @@ public class CoverShowActivity extends Activity {
                                     persistAsFolderJpg();
                                     break;
                                 case 1: // to file
-                                    persistAsFile();
+                                    persistToFile();
                                     break;
                             }
                         }

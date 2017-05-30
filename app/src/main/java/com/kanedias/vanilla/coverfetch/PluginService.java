@@ -164,13 +164,10 @@ public class PluginService extends Service {
             case P2P_READ_ART: // this is a reply on our request for artwork tag
                 Intent dialogIntent = new Intent(this, CoverShowActivity.class);
                 dialogIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
+                dialogIntent.putExtras(mOriginalIntent);
                 if (intent.hasExtra(EXTRA_PARAM_P2P_VAL)) {
                     // start activity with retrieved artwork
                     dialogIntent.putExtras(intent);
-                } else {
-                    // no artwork - start activity in normal mode
-                    dialogIntent.putExtras(mOriginalIntent);
                 }
                 startActivity(dialogIntent);
                 break;
