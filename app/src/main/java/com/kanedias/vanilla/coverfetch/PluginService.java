@@ -20,14 +20,14 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ResolveInfo;
-import android.net.Uri;
 import android.os.IBinder;
 import android.text.TextUtils;
 import android.util.Log;
+import com.kanedias.vanilla.plugins.PluginConstants;
 
 import java.util.List;
 
-import static com.kanedias.vanilla.coverfetch.PluginConstants.*;
+import static com.kanedias.vanilla.plugins.PluginConstants.*;
 
 /**
  * Main service of Plugin system.
@@ -59,10 +59,6 @@ import static com.kanedias.vanilla.coverfetch.PluginConstants.*;
 public class PluginService extends Service {
 
     public static final String PLUGIN_TAG_EDIT_PKG = "com.kanedias.vanilla.audiotag";
-
-    static final String EXTRA_PARAM_SAF_P2P = "ch.blinkenlights.android.vanilla.extra.SAF_P2P";
-
-    static final String PREF_SDCARD_URI = "ch.blinkenlights.android.vanilla.pref.SDCARD_URI";
 
     private Intent mOriginalIntent;
 

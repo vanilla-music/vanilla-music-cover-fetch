@@ -23,12 +23,28 @@ import javax.net.ssl.HttpsURLConnection;
  */
 public class CoverArchiveEngine implements CoverEngine {
 
+    private static final String USER_AGENT = "Vanilla Cover Fetch (https://github.com/vanilla-music)";
+
     private static final String TAG = CoverArchiveEngine.class.getSimpleName();
 
     @Override
     public byte[] getCover(String artistName, String albumName) {
         try {
-            return makeApiCall(artistName, albumName);
+            String releaseGroupQuery = String.format("releasegroup:%s AND artistname:%s", albumName, artistName);
+            return makeApiCall(releaseGroupQuery);
+        } catch (IOException e) {
+            Log.w(TAG, "Couldn't connect to musicbrainz/coverartarchive REST endpoints", e);
+            return null;
+        } catch (JSONException e) {
+            Log.w(TAG, "Couldn't transform API answer to JSON entity", e);
+            return null;
+        }
+    }
+
+    @Override
+    public byte[] getCover(String query) {
+        try {
+            return makeApiCall(query);
         } catch (IOException e) {
             Log.w(TAG, "Couldn't connect to musicbrainz/coverartarchive REST endpoints", e);
             return null;
@@ -41,23 +57,23 @@ public class CoverArchiveEngine implements CoverEngine {
     /**
      * First call
      */
-    private byte[] makeApiCall(String artistName, String albumName) throws IOException, JSONException {
+    private byte[] makeApiCall(String query) throws IOException, JSONException {
         HttpsURLConnection apiCall = null;
         try {
             // build query
             // e.g. https://musicbrainz.org/ws/2/release-group/?query=releasegroup:new%20divide%20AND%20artist:linkin%20park&limit=3&fmt=json
-            String releaseGroupQuery = String.format("releasegroup:%s AND artistname:%s", albumName, artistName);
             Uri link = new Uri.Builder()
                     .scheme("https")
                     .authority("musicbrainz.org")
                     .path("ws/2/release-group/")
-                    .appendQueryParameter("query", releaseGroupQuery)
+                    .appendQueryParameter("query", query)
                     .appendQueryParameter("limit", "3")
                     .appendQueryParameter("fmt", "json")
                     .build();
 
             // construct an http request
             apiCall = (HttpsURLConnection) new URL(link.toString()).openConnection();
+            apiCall.setRequestProperty("User-Agent", USER_AGENT);
             apiCall.setReadTimeout(10_000);
             apiCall.setConnectTimeout(15_000);
 
@@ -107,6 +123,7 @@ public class CoverArchiveEngine implements CoverEngine {
                         .build();
 
                 imgCall = (HttpURLConnection) new URL(imgLink.toString()).openConnection();
+                imgCall.setRequestProperty("User-Agent", USER_AGENT);
                 imgCall.setReadTimeout(10_000);
                 imgCall.setConnectTimeout(15_000);
 

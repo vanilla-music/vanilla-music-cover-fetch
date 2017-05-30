@@ -21,7 +21,6 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
@@ -29,21 +28,20 @@ import android.graphics.drawable.Drawable;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.preference.PreferenceManager;
-import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.copied.FileProvider;
+import android.support.v4.content.FileProvider;
 import android.support.v4.provider.DocumentFile;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
-import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.Toast;
-import android.widget.ViewSwitcher;
+import android.view.Window;
+import android.widget.*;
+import com.kanedias.vanilla.plugins.PluginUtils;
+import com.kanedias.vanilla.plugins.saf.SafRequestActivity;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -52,9 +50,10 @@ import java.util.List;
 import java.util.UUID;
 
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
-import static com.kanedias.vanilla.coverfetch.PluginConstants.*;
-import static com.kanedias.vanilla.coverfetch.PluginService.PREF_SDCARD_URI;
+import static com.kanedias.vanilla.plugins.PluginConstants.*;
 import static com.kanedias.vanilla.coverfetch.PluginService.pluginInstalled;
+import static com.kanedias.vanilla.plugins.PluginUtils.*;
+import static com.kanedias.vanilla.plugins.saf.SafUtils.isSafNeeded;
 
 /**
  * Main activity of Cover Fetch plugin. This will be presented as a dialog to the user
@@ -67,13 +66,13 @@ import static com.kanedias.vanilla.coverfetch.PluginService.pluginInstalled;
  */
 public class CoverShowActivity extends Activity {
 
-    private static final int PERMISSIONS_REQUEST_CODE = 0;
-
     private SharedPreferences mPrefs;
 
     private ImageView mCoverImage;
     private ViewSwitcher mSwitcher;
-    private Button mOkButton, mWriteButton;
+    private Button mOkButton, mWriteButton, mCustomButton;
+    private EditText mCustomSearch;
+    private ProgressBar mProgressBar;
 
     private CoverEngine mEngine = new CoverArchiveEngine();
 
@@ -88,6 +87,9 @@ public class CoverShowActivity extends Activity {
         mCoverImage = (ImageView) findViewById(R.id.cover_image);
         mWriteButton = (Button) findViewById(R.id.write_button);
         mOkButton = (Button) findViewById(R.id.ok_button);
+        mCustomButton = (Button) findViewById(R.id.custom_button);
+        mProgressBar = (ProgressBar) findViewById(R.id.progress_bar);
+        mCustomSearch = (EditText) findViewById(R.id.search_custom);
 
         setupUI();
         handlePassedIntent(); // called in onCreate to be shown only once
@@ -97,27 +99,64 @@ public class CoverShowActivity extends Activity {
         // check if this is an answer from tag plugin
         if (TextUtils.equals(getIntent().getStringExtra(EXTRA_PARAM_P2P), P2P_READ_ART)) {
             // already checked this string in service, no need in additional checks
-            Uri imgLink = getIntent().getParcelableExtra(EXTRA_PARAM_P2P_VAL);
-
-            try {
-                ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(imgLink, "r");
-                if (pfd == null) {
-                    return;
-                }
-
-                Bitmap raw = BitmapFactory.decodeFileDescriptor(pfd.getFileDescriptor());
-                setCoverImage(raw);
-            } catch (FileNotFoundException e) {
-                Log.e(PluginConstants.LOG_TAG, "Passed Uri points to invalid fd! " + imgLink, e);
+            if (loadFromTag()) {
+                return;
             }
+        }
+
+        // we didn't receive artwork from tag plugin
+
+        // try to retrieve from folder.jpg
+        if (loadFromFile()) {
             return;
         }
 
-        mWriteButton.setVisibility(View.VISIBLE);
-        mWriteButton.setOnClickListener(new SelectWriteAction());
+        // try to retrieve it via artwork engine
+        String artist = getIntent().getStringExtra(EXTRA_PARAM_SONG_ARTIST);
+        String album = getIntent().getStringExtra(EXTRA_PARAM_SONG_ALBUM);
+        new ArtworkFetcher().execute(artist, album);
+    }
 
-        // we didn't receive artwork from tag plugin, try to retrieve it via artwork engine
-        new ArtworkFetcher().execute(getIntent());
+    private boolean loadFromTag() {
+        Uri imgLink = getIntent().getParcelableExtra(EXTRA_PARAM_P2P_VAL);
+        try {
+            ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(imgLink, "r");
+            if (pfd == null) {
+                return false;
+            }
+
+            Bitmap raw = BitmapFactory.decodeFileDescriptor(pfd.getFileDescriptor());
+            if (raw == null) {
+                return false;
+            }
+
+            setCoverImage(raw);
+            return true;
+        } catch (FileNotFoundException e) {
+            Log.e(LOG_TAG, "Passed Uri points to invalid fd! " + imgLink, e);
+        }
+        return false;
+    }
+
+    private boolean loadFromFile() {
+        if (!PluginUtils.havePermissions(this, WRITE_EXTERNAL_STORAGE)) {
+            return false;
+        }
+
+        Uri fileUri = getIntent().getParcelableExtra(EXTRA_PARAM_URI);
+        File media = new File(fileUri.getPath());
+        File folderJpg = new File(media.getParentFile(), "folder.jpg");
+        if (!folderJpg.exists()) {
+            return false;
+        }
+
+        Bitmap raw = BitmapFactory.decodeFile(folderJpg.getPath());
+        if (raw == null) {
+            return false;
+        }
+
+        setCoverImage(raw);
+        return true;
     }
 
     private void setCoverImage(Bitmap raw) {
@@ -129,7 +168,7 @@ public class CoverShowActivity extends Activity {
         Drawable image = new BitmapDrawable(getResources(), raw);
         mCoverImage.setImageDrawable(image);
         mWriteButton.setEnabled(true);
-        mSwitcher.showNext();
+        mSwitcher.setDisplayedChild(1);
     }
 
     /**
@@ -142,26 +181,47 @@ public class CoverShowActivity extends Activity {
                 finish();
             }
         });
+        mWriteButton.setOnClickListener(new SelectWriteAction());
+        mCustomSearch.setOnEditorActionListener(new CustomSearchQueryListener());
+        mCustomButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mCustomSearch.setVisibility(mCustomSearch.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
+            }
+        });
     }
 
     /**
      * External artwork fetcher (using network). Operates asynchronously, notifies dialog when finishes.
      * On no result (no artwork, couldn't fetch etc.) shows toast about this, on success updates dialog text.
      */
-    private class ArtworkFetcher extends AsyncTask<Intent, Void, byte[]> {
+    private class ArtworkFetcher extends AsyncTask<String, Void, byte[]> {
+        @Override
+        protected void onPreExecute() {
+            mSwitcher.setDisplayedChild(0);
+            mProgressBar.setVisibility(View.VISIBLE);
+        }
 
         @Override
-        protected byte[] doInBackground(Intent... params) {
-            String artist = getIntent().getStringExtra(EXTRA_PARAM_SONG_ARTIST);
-            String album = getIntent().getStringExtra(EXTRA_PARAM_SONG_ALBUM);
-            return mEngine.getCover(artist, album);
+        protected byte[] doInBackground(String... params) {
+            if (params.length == 1) {
+                return mEngine.getCover(params[0]);
+            }
+
+            if (params.length == 2) {
+                // artist, album
+                return mEngine.getCover(params[0], params[1]);
+            }
+
+            return null;
         }
 
         @Override
         protected void onPostExecute(byte[] imgData) {
+            mProgressBar.setVisibility(View.INVISIBLE);
+
             if(imgData == null || imgData.length == 0) {
                 // no artwork - show excuse
-                finish();
                 Toast.makeText(CoverShowActivity.this, R.string.cover_not_found, Toast.LENGTH_SHORT).show();
                 return;
             }
@@ -236,18 +296,17 @@ public class CoverShowActivity extends Activity {
             return;
         }
 
-        File folderTarget = new File(mediaFile.getParent(), "folder.jpg");
-
         // image must be present because this button enables only after it's downloaded
         Bitmap bitmap = ((BitmapDrawable) mCoverImage.getDrawable()).getBitmap();
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream);
         byte[] imgData = stream.toByteArray();
 
-        if (CoverFetchUtils.isSafNeeded(folderTarget)) {
+        File folderTarget = new File(mediaFile.getParent(), "folder.jpg");
+        if (isSafNeeded(folderTarget)) {
             if (mPrefs.contains(PREF_SDCARD_URI)) {
                 // we already got the permission!
-                writeThroughSaf(imgData, mediaFile, folderTarget);
+                writeThroughSaf(imgData, mediaFile, folderTarget.getName());
                 return;
             }
 
@@ -268,32 +327,33 @@ public class CoverShowActivity extends Activity {
     /**
      * Write changes through SAF framework - the only way to do it in Android > 4.4 when working with SD card
      */
-    private void writeThroughSaf(byte[] data, File original, File target) {
-        Uri safUri;
+    private void writeThroughSaf(byte[] data, File original, String name) {
+        DocumentFile originalRef;
         if (mPrefs.contains(PREF_SDCARD_URI)) {
             // no sorcery can allow you to gain URI to the document representing file you've been provided with
             // you have to find it again now using Document API
 
             // /storage/volume/Music/some.mp3 will become [storage, volume, music, some.mp3]
-            List<String> pathSegments = new ArrayList<>(Arrays.asList(target.getAbsolutePath().split("/")));
+            List<String> pathSegments = new ArrayList<>(Arrays.asList(original.getAbsolutePath().split("/")));
             Uri allowedSdRoot = Uri.parse(mPrefs.getString(PREF_SDCARD_URI, ""));
-            safUri = findInDocumentTree(DocumentFile.fromTreeUri(this, allowedSdRoot), pathSegments);
+            originalRef = findInDocumentTree(DocumentFile.fromTreeUri(this, allowedSdRoot), pathSegments);
         } else {
             // user will click the button again
             return;
         }
 
-        if (safUri == null) {
+        if (originalRef == null) {
             // nothing selected or invalid file?
             Toast.makeText(this, R.string.saf_nothing_selected, Toast.LENGTH_LONG).show();
             return;
         }
 
+        DocumentFile folderJpgRef = originalRef.getParentFile().createFile("image/*", name);
         try {
-            ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(safUri, "rw");
+            ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(folderJpgRef.getUri(), "rw");
             if (pfd == null) {
                 // should not happen
-                Log.e(LOG_TAG, "SAF provided incorrect URI!" + safUri);
+                Log.e(LOG_TAG, "SAF provided incorrect URI!" + folderJpgRef.getUri());
                 return;
             }
 
@@ -315,10 +375,10 @@ public class CoverShowActivity extends Activity {
      * files such as "/a/b/c.mp3" and "/b/a/c.mp3", but I consider it complete enough to be usable.
      * @param currentDir - document file representing current dir of search
      * @param remainingPathSegments - path segments that are left to find
-     * @return URI for found file. Null if nothing found.
+     * @return Document file representing a target
      */
     @Nullable
-    private Uri findInDocumentTree(DocumentFile currentDir, List<String> remainingPathSegments) {
+    private DocumentFile findInDocumentTree(DocumentFile currentDir, List<String> remainingPathSegments) {
         for (DocumentFile file : currentDir.listFiles()) {
             int index = remainingPathSegments.indexOf(file.getName());
             if (index == -1) {
@@ -332,7 +392,7 @@ public class CoverShowActivity extends Activity {
 
             if (file.isFile() && index == remainingPathSegments.size() - 1) {
                 // got to the last part
-                return file.getUri();
+                return file;
             }
         }
 
@@ -361,21 +421,8 @@ public class CoverShowActivity extends Activity {
     }
 
     /**
-     * Checks for permission and requests it if needed.
-     * You should catch answer back in {@link #onRequestPermissionsResult(int, String[], int[])}
-     * <br/>
-     * (Or don't. This way request will appear forever as {@link #onResume()} will never end)
-     * @param perm permission to request
-     * @return true if this app had this permission prior to check, false otherwise.
+     * Listener which invokes action dialog on click with selection on where to write the retrieved cover
      */
-    private boolean checkAndRequestPermissions(String perm) {
-        if (!CoverFetchUtils.havePermissions(this, perm)  && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            requestPermissions(new String[]{perm}, PERMISSIONS_REQUEST_CODE);
-            return false;
-        }
-        return true;
-    }
-
     private class SelectWriteAction implements View.OnClickListener {
 
         @Override
@@ -395,7 +442,7 @@ public class CoverShowActivity extends Activity {
                             switch (which) {
                                 case 0: // to folder
                                     // onResume will fire both on first launch and on return from permission request
-                                    if (!checkAndRequestPermissions(WRITE_EXTERNAL_STORAGE)) {
+                                    if (!checkAndRequestPermissions(CoverShowActivity.this, WRITE_EXTERNAL_STORAGE)) {
                                         return;
                                     }
 
@@ -407,6 +454,18 @@ public class CoverShowActivity extends Activity {
                             }
                         }
                     }).create().show();
+        }
+    }
+
+    /**
+     * Listener which submits query to the artwork execution engine
+     */
+    private class CustomSearchQueryListener implements TextView.OnEditorActionListener {
+
+        @Override
+        public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+            new ArtworkFetcher().execute(v.getText().toString());
+            return true;
         }
     }
 }

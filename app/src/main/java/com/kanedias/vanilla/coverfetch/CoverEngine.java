@@ -31,8 +31,16 @@ public interface CoverEngine {
      * or {@link Loader}
      * @param artistName band or artist name to search for
      * @param albumName full album name to search for
-     * @return string containing album cover if available, null if nothing found
+     * @return byte array containing album cover if available, null if nothing found
      */
     byte[] getCover(String artistName, String albumName);
+
+    /**
+     * Synchronous call to engine to retrieve cover. Most likely to be used in {@link HandlerThread}
+     * or {@link Loader}
+     * @param query raw query to search for
+     * @return byte array containing album cover if available, null if nothing found
+     */
+    byte[] getCover(String query);
 
 }

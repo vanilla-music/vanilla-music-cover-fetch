@@ -1,60 +1,91 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:orientation="vertical"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:paddingLeft="16dp"
-    android:paddingRight="16dp"
-    android:paddingTop="16dp"
-    tools:context=".CoverShowActivity">
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:focusableInTouchMode="true"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:paddingTop="16dp"
+        tools:context=".CoverShowActivity">
 
     <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:paddingBottom="5dp"
-        android:fadeScrollbars="false">
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:paddingBottom="5dp"
+            android:fadeScrollbars="false">
 
         <ViewSwitcher
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/loading_switcher">
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/loading_switcher">
 
             <ProgressBar
-                android:layout_gravity="center"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:padding="5dp"
-                android:indeterminate="true"/>
+                    android:layout_gravity="center"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:padding="5dp"
+                    android:visibility="invisible"
+                    android:indeterminate="true"
+                    android:id="@+id/progress_bar"/>
 
             <ImageView
-                android:layout_gravity="top|center_horizontal"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:scaleType="centerInside"
-                android:adjustViewBounds="true"
-                android:id="@+id/cover_image"/>
+                    android:layout_gravity="top|center_horizontal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:scaleType="centerInside"
+                    android:adjustViewBounds="true"
+                    android:id="@+id/cover_image"/>
 
         </ViewSwitcher>
 
     </ScrollView>
 
-    <Button
-        style="?android:attr/buttonBarButtonStyle"
-        android:visibility="gone"
-        android:enabled="false"
-        android:text="@string/write_to"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/write_button"/>
 
-    <Button
-        style="?android:attr/buttonBarButtonStyle"
-        android:text="@android:string/ok"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/ok_button"/>
+    <EditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/custom_album"
+            android:visibility="gone"
+            android:layout_marginLeft="15dp"
+            android:layout_marginRight="15dp"
+            android:imeOptions="actionSearch"
+            android:inputType="textCapWords"
+            android:id="@+id/search_custom"/>
+
+    <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+        <Button
+                style="?android:attr/buttonBarButtonStyle"
+                android:enabled="false"
+                android:text="@string/write"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:id="@+id/write_button"/>
+
+        <Button
+                style="?android:attr/buttonBarButtonStyle"
+                android:text="@string/custom"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:id="@+id/custom_button"/>
+
+        <Button
+                style="?android:attr/buttonBarButtonStyle"
+                android:text="@android:string/ok"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:id="@+id/ok_button"/>
+
+    </LinearLayout>
 
 </LinearLayout>

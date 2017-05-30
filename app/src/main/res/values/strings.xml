@@ -4,7 +4,7 @@
     <string name="plugin_desc">Allows you to download album covers for requested song</string>
     <string name="cover_not_found">Cover not found!</string>
     <string name="invalid_cover_image_format">Invalid cover image format!</string>
-    <string name="write_to">Write to…</string>
+    <string name="write">Write…</string>
     <string name="write_to_file">Write to file</string>
     <string name="write_to_folder">Write to folder.jpg</string>
     <string name="need_sd_card_access">SD card access required, steps below</string>
@@ -15,4 +15,6 @@
     <string name="saf_nothing_selected">Nothing selected from SAF file picker, exiting…</string>
     <string name="saf_write_error">SAF exchange error: </string>
     <string name="error_writing_file">File write error: </string>
+    <string name="custom_album">custom album</string>
+    <string name="custom">Custom</string>
 </resources>
