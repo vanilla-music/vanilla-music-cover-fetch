@@ -55,6 +55,7 @@ import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static com.kanedias.vanilla.plugins.PluginConstants.*;
 import static com.kanedias.vanilla.coverfetch.PluginService.pluginInstalled;
 import static com.kanedias.vanilla.plugins.PluginUtils.*;
+import static com.kanedias.vanilla.plugins.saf.SafUtils.findInDocumentTree;
 import static com.kanedias.vanilla.plugins.saf.SafUtils.isSafNeeded;
 
 /**
@@ -371,35 +372,6 @@ public class CoverShowActivity extends Activity {
             Toast.makeText(this, getString(R.string.saf_write_error) + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
             Log.e(LOG_TAG, "Failed to write to file descriptor provided by SAF!", e);
         }
-    }
-
-    /**
-     * Finds needed file through Document API for SAF. It's not optimized yet - you can still gain wrong URI on
-     * files such as "/a/b/c.mp3" and "/b/a/c.mp3", but I consider it complete enough to be usable.
-     * @param currentDir - document file representing current dir of search
-     * @param remainingPathSegments - path segments that are left to find
-     * @return Document file representing a target
-     */
-    @Nullable
-    private DocumentFile findInDocumentTree(DocumentFile currentDir, List<String> remainingPathSegments) {
-        for (DocumentFile file : currentDir.listFiles()) {
-            int index = remainingPathSegments.indexOf(file.getName());
-            if (index == -1) {
-                continue;
-            }
-
-            if (file.isDirectory()) {
-                remainingPathSegments.remove(file.getName());
-                return findInDocumentTree(file, remainingPathSegments);
-            }
-
-            if (file.isFile() && index == remainingPathSegments.size() - 1) {
-                // got to the last part
-                return file;
-            }
-        }
-
-        return null;
     }
 
     /**
