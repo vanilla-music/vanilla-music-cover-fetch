@@ -32,6 +32,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.preference.PreferenceManager;
+import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.content.FileProvider;
@@ -69,13 +70,16 @@ import static com.kanedias.vanilla.plugins.saf.SafUtils.isSafNeeded;
  */
 public class CoverShowActivity extends Activity {
 
+    private static final int PICK_IMAGE_REQUEST = 1;
+
     private SharedPreferences mPrefs;
 
     private ImageView mCoverImage;
     private ViewSwitcher mSwitcher;
     private Button mOkButton, mWriteButton, mCustomButton;
-    private EditText mCustomSearch;
     private ProgressBar mProgressBar;
+    private EditText mCustomSearch;
+    private Button mCustomMedia;
 
     private CoverEngine mEngine = new CoverArchiveEngine();
 
@@ -93,6 +97,7 @@ public class CoverShowActivity extends Activity {
         mCustomButton = (Button) findViewById(R.id.custom_button);
         mProgressBar = (ProgressBar) findViewById(R.id.progress_bar);
         mCustomSearch = (EditText) findViewById(R.id.search_custom);
+        mCustomMedia = (Button) findViewById(R.id.from_custom_media);
 
         setupUI();
         handlePassedIntent(); // called in onCreate to be shown only once
@@ -190,6 +195,15 @@ public class CoverShowActivity extends Activity {
             @Override
             public void onClick(View v) {
                 mCustomSearch.setVisibility(mCustomSearch.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
+                mCustomMedia.setVisibility(mCustomMedia.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
+            }
+        });
+        mCustomMedia.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                intent.setType("image/*");
+                startActivityForResult(Intent.createChooser(intent, getString(R.string.pick_custom_media)), PICK_IMAGE_REQUEST);
             }
         });
     }
@@ -422,6 +436,26 @@ public class CoverShowActivity extends Activity {
                 // continue persist process started in Write... -> folder.jpg
                 persistAsFolderJpg();
             }
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case PICK_IMAGE_REQUEST: // custom image requested
+                if (resultCode != RESULT_OK || data == null || data.getData() == null) {
+                    return;
+                }
+
+                try {
+                    Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), data.getData());
+                    mCoverImage.setImageBitmap(bitmap);
+                } catch (IOException e) {
+                    Toast.makeText(this, getString(R.string.error_decoding_image) + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                    Log.e(LOG_TAG, "Failed to decode bitmap from passed intent image!", e);
+                }
+            default:
+                super.onActivityResult(requestCode, resultCode, data);
         }
     }
 

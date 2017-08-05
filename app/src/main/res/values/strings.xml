@@ -17,4 +17,7 @@
     <string name="error_writing_file">File write error: </string>
     <string name="custom_album">custom album</string>
     <string name="custom">Custom</string>
+    <string name="from_custom_media">From custom media…</string>
+    <string name="pick_custom_media">Pick custom media</string>
+    <string name="error_decoding_image">Error decoding image: </string>
 </resources>
