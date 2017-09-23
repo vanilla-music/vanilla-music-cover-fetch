@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">Vanilla borítóletöltő</string>
+    <string name="cover_fetch">Borítóletöltő</string>
+    <string name="plugin_desc">A segítségével letöltheti az albumborítót a kért számhoz</string>
+    <string name="cover_not_found">Nem található borító.</string>
+    <string name="invalid_cover_image_format">Érvénytelen borítókép formátum.</string>
+    <string name="write">Írás…</string>
+    <string name="write_to_file">Fájl címkébe írás</string>
+    <string name="write_to_folder">Írás ide: folder.jpg</string>
+    <string name="need_sd_card_access">SD kártya hozzáférés szükséges, a lépesek lent</string>
+    <string name="file_written_successfully">Fájl írása sikeres.</string>
+    <string name="file_on_external_sd_warning">Úgy tűnik, hogy a fájl külső SD kártyán van, az Android nem biztosít megfelelő API-t azokhoz</string>
+    <string name="file_on_external_sd_workaround">Kerülőmegoldásként válassza ki ezt a fájl az SAF fájlválasztóval, hogy ideiglenes hozzáférést adjon</string>
+    <string name="file_on_external_sd_hint">Kiválasztandó fájlútvonal: %s</string>
+    <string name="saf_nothing_selected">Semmi nem lett kiválasztva a SAF fájlválasztóval, kilépés…</string>
+    <string name="saf_write_error">SAF hiba: </string>
+    <string name="error_writing_file">Fájl írási hiba: </string>
+    <string name="custom_album">egyéni album</string>
+    <string name="custom">Egyéni</string>
+    <string name="from_custom_media">Egyéni médiából…</string>
+    <string name="pick_custom_media">Válasszon egyéni médiát</string>
+    <string name="error_decoding_image">Hiba a kép dekódolásakor: </string>
+</resources>
