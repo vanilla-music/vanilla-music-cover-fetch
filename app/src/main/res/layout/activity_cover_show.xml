@@ -1,99 +1,107 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:tools="http://schemas.android.com/tools"
-        android:focusableInTouchMode="true"
-        android:orientation="vertical"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp"
-        android:paddingTop="16dp"
-        tools:context=".CoverShowActivity">
-
-    <ScrollView
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:paddingBottom="5dp"
-            android:fadeScrollbars="false">
-
-        <ViewSwitcher
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:id="@+id/loading_switcher">
-
-            <ProgressBar
-                    android:layout_gravity="center"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:padding="5dp"
-                    android:visibility="invisible"
-                    android:indeterminate="true"
-                    android:id="@+id/progress_bar"/>
-
-            <ImageView
-                    android:layout_gravity="top|center_horizontal"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:scaleType="centerInside"
-                    android:adjustViewBounds="true"
-                    android:id="@+id/cover_image"/>
-
-        </ViewSwitcher>
-
-    </ScrollView>
-
-
-    <EditText
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/custom_album"
-            android:visibility="gone"
-            android:layout_marginLeft="15dp"
-            android:layout_marginRight="15dp"
-            android:imeOptions="actionSearch"
-            android:inputType="textCapWords"
-            android:id="@+id/search_custom"/>
-
-    <Button
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="@string/from_custom_media"
-        android:visibility="gone"
-        android:layout_marginLeft="15dp"
-        android:layout_marginRight="15dp"
-        android:id="@+id/from_custom_media"/>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:focusableInTouchMode="true"
+    android:orientation="vertical"
+    android:paddingLeft="16dp"
+    android:paddingRight="16dp"
+    android:paddingTop="8dp"
+    tools:context=".CoverShowActivity">
 
     <LinearLayout
-            android:layout_width="match_parent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp">
+
+        <Button
+            android:id="@+id/custom_button"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:layout_weight="1"
+            android:text="@string/custom" />
 
         <Button
-                style="?android:attr/buttonBarButtonStyle"
-                android:enabled="false"
-                android:text="@string/write"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:id="@+id/write_button"/>
+            android:id="@+id/reload_button"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:enabled="false"
+            android:text="@string/reload" />
+
+    </LinearLayout>
+
+    <EditText
+        android:id="@+id/search_custom"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="15dp"
+        android:layout_marginRight="15dp"
+        android:hint="@string/custom_album"
+        android:imeOptions="actionSearch"
+        android:inputType="textCapWords"
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/from_custom_media"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="15dp"
+        android:layout_marginRight="15dp"
+        android:hint="@string/from_custom_media"
+        android:visibility="gone" />
+
+    <ViewSwitcher
+        android:id="@+id/loading_switcher"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <ProgressBar
+            android:id="@+id/progress_bar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:indeterminate="true"
+            android:padding="5dp"
+            android:visibility="invisible" />
+
+        <ImageView
+            android:id="@+id/cover_image"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|center_horizontal"
+            android:adjustViewBounds="true"
+            android:scaleType="centerInside" />
+
+    </ViewSwitcher>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="8dp">
 
         <Button
-                style="?android:attr/buttonBarButtonStyle"
-                android:text="@string/custom"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:id="@+id/custom_button"/>
+            android:id="@+id/write_button"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:enabled="false"
+            android:text="@string/write" />
 
         <Button
-                style="?android:attr/buttonBarButtonStyle"
-                android:text="@android:string/ok"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:id="@+id/ok_button"/>
+            android:id="@+id/ok_button"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@android:string/ok" />
 
     </LinearLayout>
 

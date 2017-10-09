@@ -77,7 +77,7 @@ public class CoverShowActivity extends Activity {
 
     private ImageView mCoverImage;
     private ViewSwitcher mSwitcher;
-    private Button mOkButton, mWriteButton, mCustomButton;
+    private Button mOkButton, mWriteButton, mCustomButton, mReload;
     private ProgressBar mProgressBar;
     private EditText mCustomSearch;
     private Button mCustomMedia;
@@ -95,18 +95,19 @@ public class CoverShowActivity extends Activity {
         mCoverImage = (ImageView) findViewById(R.id.cover_image);
         mWriteButton = (Button) findViewById(R.id.write_button);
         mOkButton = (Button) findViewById(R.id.ok_button);
+        mReload = (Button) findViewById(R.id.reload_button);
         mCustomButton = (Button) findViewById(R.id.custom_button);
         mProgressBar = (ProgressBar) findViewById(R.id.progress_bar);
         mCustomSearch = (EditText) findViewById(R.id.search_custom);
         mCustomMedia = (Button) findViewById(R.id.from_custom_media);
 
         setupUI();
-        handlePassedIntent(); // called in onCreate to be shown only once
+        handlePassedIntent(true); // called in onCreate to be shown only once
     }
 
-    private void handlePassedIntent() {
+    private void handlePassedIntent(boolean useLocal) {
         // check if this is an answer from tag plugin
-        if (TextUtils.equals(getIntent().getStringExtra(EXTRA_PARAM_P2P), P2P_READ_ART)) {
+        if (useLocal && TextUtils.equals(getIntent().getStringExtra(EXTRA_PARAM_P2P), P2P_READ_ART)) {
             // already checked this string in service, no need in additional checks
             if (loadFromTag()) {
                 return;
@@ -116,7 +117,7 @@ public class CoverShowActivity extends Activity {
         // we didn't receive artwork from tag plugin
 
         // try to retrieve from folder.jpg
-        if (loadFromFile()) {
+        if (useLocal && loadFromFile()) {
             return;
         }
 
@@ -199,6 +200,7 @@ public class CoverShowActivity extends Activity {
         Drawable image = new BitmapDrawable(getResources(), raw);
         mCoverImage.setImageDrawable(image);
         mWriteButton.setEnabled(true);
+        mReload.setEnabled(true);
         mSwitcher.setDisplayedChild(1);
     }
 
@@ -206,6 +208,13 @@ public class CoverShowActivity extends Activity {
      * Initialize UI elements with handlers and action listeners
      */
     private void setupUI() {
+        mReload.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mSwitcher.setDisplayedChild(0);
+                handlePassedIntent(false);
+            }
+        });
         mOkButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
