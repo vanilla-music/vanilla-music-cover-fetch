@@ -31,7 +31,7 @@ public class CoverArchiveEngine implements CoverEngine {
     public byte[] getCover(String artistName, String albumName) {
         try {
             String releaseGroupQuery = String.format("releasegroup:%s AND artistname:%s", albumName, artistName);
-            return makeApiCall(releaseGroupQuery);
+            return makeApiCall("release-group", releaseGroupQuery);
         } catch (IOException e) {
             Log.w(TAG, "Couldn't connect to musicbrainz/coverartarchive REST endpoints", e);
             return null;
@@ -44,7 +44,7 @@ public class CoverArchiveEngine implements CoverEngine {
     @Override
     public byte[] getCover(String query) {
         try {
-            return makeApiCall(query);
+            return makeApiCall("release-group", query);
         } catch (IOException e) {
             Log.w(TAG, "Couldn't connect to musicbrainz/coverartarchive REST endpoints", e);
             return null;
@@ -57,15 +57,15 @@ public class CoverArchiveEngine implements CoverEngine {
     /**
      * First call
      */
-    private byte[] makeApiCall(String query) throws IOException, JSONException {
+    private byte[] makeApiCall(String type, String query) throws IOException, JSONException {
         HttpsURLConnection apiCall = null;
         try {
             // build query
-            // e.g. https://musicbrainz.org/ws/2/release-group/?query=releasegroup:new%20divide%20AND%20artist:linkin%20park&limit=3&fmt=json
+            // e.g. https://musicbrainz.org/ws/2/work/?query=releasegroup:new%20divide%20AND%20artist:linkin%20park&limit=3&fmt=json
             Uri link = new Uri.Builder()
                     .scheme("https")
                     .authority("musicbrainz.org")
-                    .path("ws/2/release-group/")
+                    .path("ws/2/"+ type + '/')
                     .appendQueryParameter("query", query)
                     .appendQueryParameter("limit", "3")
                     .appendQueryParameter("fmt", "json")

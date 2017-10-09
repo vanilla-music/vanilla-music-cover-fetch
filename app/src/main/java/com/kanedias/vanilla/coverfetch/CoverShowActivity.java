@@ -41,6 +41,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
+import android.webkit.MimeTypeMap;
 import android.widget.*;
 import com.kanedias.vanilla.plugins.PluginConstants;
 import com.kanedias.vanilla.plugins.PluginUtils;
@@ -121,8 +122,30 @@ public class CoverShowActivity extends Activity {
 
         // try to retrieve it via artwork engine
         String artist = getIntent().getStringExtra(EXTRA_PARAM_SONG_ARTIST);
+        if (artist != null && artist.contains("No Artist")) {
+            artist = null;
+        }
         String album = getIntent().getStringExtra(EXTRA_PARAM_SONG_ALBUM);
-        new ArtworkFetcher().execute(artist, album);
+        if (album != null && album.contains("No Album")) {
+            album = null;
+        }
+
+        if (album != null && artist != null) {
+            new ArtworkFetcher().execute(artist, album);
+        } else if (album != null) {
+            new ArtworkFetcher().execute(album);
+        } else if (artist != null) {
+            new ArtworkFetcher().execute(artist);
+        } else {
+            // album and artist both are null, take filename
+            Uri fileUri = getIntent().getParcelableExtra(EXTRA_PARAM_URI);
+            String fileName = fileUri.getLastPathSegment();
+            int extensionStart = fileName.lastIndexOf(".");
+            if (extensionStart > 0) {
+                fileName = fileName.substring(0, extensionStart);
+            }
+            new ArtworkFetcher().execute(fileName);
+        }
     }
 
     private boolean loadFromTag() {
