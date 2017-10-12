@@ -34,15 +34,18 @@ import android.os.ParcelFileDescriptor;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.v4.content.FileProvider;
 import android.support.v4.provider.DocumentFile;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
-import android.webkit.MimeTypeMap;
 import android.widget.*;
+
+import com.kanedias.vanilla.plugins.DialogActivity;
 import com.kanedias.vanilla.plugins.PluginConstants;
 import com.kanedias.vanilla.plugins.PluginUtils;
 import com.kanedias.vanilla.plugins.saf.SafRequestActivity;
@@ -54,6 +57,8 @@ import java.util.List;
 import java.util.UUID;
 
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
+import static android.view.View.GONE;
+import static android.view.View.VISIBLE;
 import static com.kanedias.vanilla.plugins.PluginConstants.*;
 import static com.kanedias.vanilla.coverfetch.PluginService.pluginInstalled;
 import static com.kanedias.vanilla.plugins.PluginUtils.*;
@@ -69,7 +74,7 @@ import static com.kanedias.vanilla.plugins.saf.SafUtils.isSafNeeded;
  *
  * @author Oleg Chernovskiy
  */
-public class CoverShowActivity extends Activity {
+public class CoverShowActivity extends DialogActivity {
 
     private static final int PICK_IMAGE_REQUEST = 1;
 
@@ -77,7 +82,7 @@ public class CoverShowActivity extends Activity {
 
     private ImageView mCoverImage;
     private ViewSwitcher mSwitcher;
-    private Button mOkButton, mWriteButton, mCustomButton, mReload;
+    private Button mOkButton, mWriteButton;
     private ProgressBar mProgressBar;
     private EditText mCustomSearch;
     private Button mCustomMedia;
@@ -95,14 +100,51 @@ public class CoverShowActivity extends Activity {
         mCoverImage = (ImageView) findViewById(R.id.cover_image);
         mWriteButton = (Button) findViewById(R.id.write_button);
         mOkButton = (Button) findViewById(R.id.ok_button);
-        mReload = (Button) findViewById(R.id.reload_button);
-        mCustomButton = (Button) findViewById(R.id.custom_button);
         mProgressBar = (ProgressBar) findViewById(R.id.progress_bar);
         mCustomSearch = (EditText) findViewById(R.id.search_custom);
         mCustomMedia = (Button) findViewById(R.id.from_custom_media);
 
         setupUI();
         handlePassedIntent(true); // called in onCreate to be shown only once
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = new MenuInflater(this);
+        inflater.inflate(R.menu.cover_options, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        for (int i = 0; i < menu.size(); i++) {
+            MenuItem item = menu.getItem(i);
+            switch (item.getItemId()) {
+                case R.id.reload_option:
+                case R.id.custom_option:
+                    // show only when loading is complete
+                    item.setVisible(mSwitcher.getDisplayedChild() == 1);
+                    continue;
+                default:
+                    break;
+            }
+        }
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.custom_option:
+                mCustomSearch.setVisibility(mCustomSearch.getVisibility() == VISIBLE ? GONE : VISIBLE);
+                mCustomMedia.setVisibility(mCustomMedia.getVisibility() == VISIBLE ? GONE : VISIBLE);
+                return true;
+            case R.id.reload_option:
+                mSwitcher.setDisplayedChild(0);
+                handlePassedIntent(false);
+                return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     private void handlePassedIntent(boolean useLocal) {
@@ -192,29 +234,25 @@ public class CoverShowActivity extends Activity {
     }
 
     private void setCoverImage(Bitmap raw) {
+        Drawable image;
         if (raw == null) {
-            Toast.makeText(this, R.string.invalid_cover_image_format, Toast.LENGTH_LONG).show();
-            return;
+            image = null;
+            mWriteButton.setEnabled(false);
+        } else {
+            // we have some bitmap
+            image = new BitmapDrawable(getResources(), raw);
+            mWriteButton.setEnabled(true);
         }
 
-        Drawable image = new BitmapDrawable(getResources(), raw);
         mCoverImage.setImageDrawable(image);
-        mWriteButton.setEnabled(true);
-        mReload.setEnabled(true);
         mSwitcher.setDisplayedChild(1);
+        invalidateOptionsMenu();
     }
 
     /**
      * Initialize UI elements with handlers and action listeners
      */
     private void setupUI() {
-        mReload.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mSwitcher.setDisplayedChild(0);
-                handlePassedIntent(false);
-            }
-        });
         mOkButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -223,13 +261,6 @@ public class CoverShowActivity extends Activity {
         });
         mWriteButton.setOnClickListener(new SelectWriteAction());
         mCustomSearch.setOnEditorActionListener(new CustomSearchQueryListener());
-        mCustomButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mCustomSearch.setVisibility(mCustomSearch.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
-                mCustomMedia.setVisibility(mCustomMedia.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
-            }
-        });
         mCustomMedia.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -248,7 +279,7 @@ public class CoverShowActivity extends Activity {
         @Override
         protected void onPreExecute() {
             mSwitcher.setDisplayedChild(0);
-            mProgressBar.setVisibility(View.VISIBLE);
+            mProgressBar.setVisibility(VISIBLE);
         }
 
         @Override
@@ -276,6 +307,9 @@ public class CoverShowActivity extends Activity {
             }
 
             Bitmap raw = BitmapFactory.decodeByteArray(imgData, 0, imgData.length);
+            if (raw == null) {
+                Toast.makeText(CoverShowActivity.this, R.string.invalid_cover_image_format, Toast.LENGTH_LONG).show();
+            }
             setCoverImage(raw);
         }
     }

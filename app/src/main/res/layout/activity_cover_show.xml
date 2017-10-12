@@ -10,32 +10,6 @@
     android:paddingTop="8dp"
     tools:context=".CoverShowActivity">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp">
-
-        <Button
-            android:id="@+id/custom_button"
-            style="?android:attr/buttonBarButtonStyle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/custom" />
-
-        <Button
-            android:id="@+id/reload_button"
-            style="?android:attr/buttonBarButtonStyle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:enabled="false"
-            android:text="@string/reload" />
-
-    </LinearLayout>
-
     <EditText
         android:id="@+id/search_custom"
         android:layout_width="match_parent"
@@ -74,6 +48,7 @@
             android:id="@+id/cover_image"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:maxHeight="300dp"
             android:layout_gravity="top|center_horizontal"
             android:adjustViewBounds="true"
             android:scaleType="centerInside" />
