@@ -7,6 +7,11 @@ Once both player and this plugin are installed,
 request a context menu from library screen, select "Plugins" and "Cover fetch" afterwards.
 Note that this plugin requires internet connection to be useful.
 
+<a href="https://f-droid.org/packages/com.kanedias.vanilla.coverfetch/" target="_blank">
+<img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="80"/></a>
+<a href="https://play.google.com/store/apps/details?id=com.kanedias.vanilla.coverfetch" target="_blank">
+<img src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png" alt="Get it on Google Play" height="80"/></a>
+
 # Features
 
 * Requests album artwork by artist and album title from musicbrainz
