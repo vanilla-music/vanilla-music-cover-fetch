@@ -31,7 +31,7 @@ public class CoverArchiveEngine implements CoverEngine {
     public byte[] getCover(String artistName, String albumName) {
         try {
             String releaseGroupQuery = String.format("releasegroup:%s AND artistname:%s", albumName, artistName);
-            return makeApiCall("release-group", releaseGroupQuery);
+            return makeApiCall(releaseGroupQuery);
         } catch (IOException e) {
             Log.w(TAG, "Couldn't connect to musicbrainz/coverartarchive REST endpoints", e);
             return null;
@@ -44,7 +44,7 @@ public class CoverArchiveEngine implements CoverEngine {
     @Override
     public byte[] getCover(String query) {
         try {
-            return makeApiCall("release-group", query);
+            return makeApiCall(query);
         } catch (IOException e) {
             Log.w(TAG, "Couldn't connect to musicbrainz/coverartarchive REST endpoints", e);
             return null;
@@ -57,7 +57,7 @@ public class CoverArchiveEngine implements CoverEngine {
     /**
      * First call
      */
-    private byte[] makeApiCall(String type, String query) throws IOException, JSONException {
+    private byte[] makeApiCall(String query) throws IOException, JSONException {
         HttpsURLConnection apiCall = null;
         try {
             // build query
@@ -65,7 +65,7 @@ public class CoverArchiveEngine implements CoverEngine {
             Uri link = new Uri.Builder()
                     .scheme("https")
                     .authority("musicbrainz.org")
-                    .path("ws/2/"+ type + '/')
+                    .path("ws/2/" + "release-group" + '/')
                     .appendQueryParameter("query", query)
                     .appendQueryParameter("limit", "3")
                     .appendQueryParameter("fmt", "json")
@@ -154,8 +154,6 @@ public class CoverArchiveEngine implements CoverEngine {
         while ((count = stream.read(buffer)) != -1) {
             baos.write(buffer, 0, count);
         }
-
         return baos.toByteArray();
     }
-
 }

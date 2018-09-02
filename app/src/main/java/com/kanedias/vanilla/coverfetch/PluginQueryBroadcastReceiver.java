@@ -23,6 +23,8 @@ import android.util.Log;
 
 import com.kanedias.vanilla.plugins.PluginConstants;
 
+import java.util.Objects;
+
 /**
  * Broadcast receiver used for retrieving query intents
  *
@@ -41,7 +43,7 @@ public class PluginQueryBroadcastReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         Log.i(PluginConstants.LOG_TAG, "Received query intent!");
-        switch (intent.getAction()) {
+		switch (Objects.requireNonNull(intent.getAction())) {
             case PluginConstants.ACTION_REQUEST_PLUGIN_PARAMS:
                 intent.setClass(context, PluginService.class);
                 context.startService(intent);

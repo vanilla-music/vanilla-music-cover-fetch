@@ -42,5 +42,4 @@ public interface CoverEngine {
      * @return byte array containing album cover if available, null if nothing found
      */
     byte[] getCover(String query);
-
 }
