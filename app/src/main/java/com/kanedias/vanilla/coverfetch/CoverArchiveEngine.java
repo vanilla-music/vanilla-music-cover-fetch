@@ -94,7 +94,7 @@ public class CoverArchiveEngine implements CoverEngine {
             JSONArray relGroups = searchContent.getJSONArray("release-groups");
             return getFirstImage(relGroups);
         } finally {
-            if(apiCall != null) {
+            if (apiCall != null) {
                 apiCall.disconnect();
             }
         }
@@ -102,10 +102,11 @@ public class CoverArchiveEngine implements CoverEngine {
 
     /**
      * Retrieve first available image from retrieved release-groups
+     *
      * @param relGroups array of release groups returned by musicbrainz API call
      * @return byte array with content of first found image for these release-groups or null if nothing found
      * @throws JSONException in case musicbrainz answer differs from wiki page
-     * @throws IOException in case of encoding/connect problems
+     * @throws IOException   in case of encoding/connect problems
      */
     private byte[] getFirstImage(JSONArray relGroups) throws JSONException, IOException {
         for (int i = 0; i < relGroups.length(); ++i) {
@@ -138,7 +139,7 @@ public class CoverArchiveEngine implements CoverEngine {
                 InputStream imgStream = imgCall.getInputStream();
                 return readIt(imgStream);
             } finally {
-                if(imgCall != null) {
+                if (imgCall != null) {
                     imgCall.disconnect();
                 }
             }

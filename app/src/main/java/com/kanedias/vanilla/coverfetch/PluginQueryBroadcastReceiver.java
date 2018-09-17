@@ -37,13 +37,14 @@ public class PluginQueryBroadcastReceiver extends BroadcastReceiver {
      * Just starts the service. We need a broadcast receiver for this, as ordinary intents
      * are targeted-only. Only query intents will come here, as "plugin launch" intents are targeted
      * and thus don't need a broadcast receiver to reach service.
+     *
      * @param context context this receiver operates in
-     * @param intent incoming query intent
+     * @param intent  incoming query intent
      */
     @Override
     public void onReceive(Context context, Intent intent) {
         Log.i(PluginConstants.LOG_TAG, "Received query intent!");
-		switch (Objects.requireNonNull(intent.getAction())) {
+        switch (Objects.requireNonNull(intent.getAction())) {
             case PluginConstants.ACTION_REQUEST_PLUGIN_PARAMS:
                 intent.setClass(context, PluginService.class);
                 context.startService(intent);

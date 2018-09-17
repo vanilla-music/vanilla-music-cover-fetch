@@ -41,9 +41,9 @@
             android:theme="@style/DialogTheme"
             android:excludeFromRecents="true"/>
         <activity
-                android:name="com.kanedias.vanilla.plugins.saf.SafRequestActivity"
-                android:theme="@style/DialogTheme"
-                android:excludeFromRecents="true"/>
+            android:name="com.kanedias.vanilla.plugins.saf.SafRequestActivity"
+            android:excludeFromRecents="true"
+            android:theme="@style/DialogTheme" />
     </application>
 
 </manifest>
