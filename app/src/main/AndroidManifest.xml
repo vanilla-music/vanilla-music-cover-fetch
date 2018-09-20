@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest package="com.kanedias.vanilla.coverfetch"
-          xmlns:android="http://schemas.android.com/apk/res/android">
+    xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
@@ -41,9 +41,9 @@
             android:theme="@style/DialogTheme"
             android:excludeFromRecents="true"/>
         <activity
-                android:name="com.kanedias.vanilla.plugins.saf.SafRequestActivity"
-                android:theme="@style/DialogTheme"
-                android:excludeFromRecents="true"/>
+            android:name="com.kanedias.vanilla.plugins.saf.SafRequestActivity"
+            android:excludeFromRecents="true"
+            android:theme="@style/DialogTheme" />
     </application>
 
 </manifest>

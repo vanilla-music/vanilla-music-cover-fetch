@@ -18,7 +18,6 @@ package com.kanedias.vanilla.coverfetch;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -43,14 +42,24 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.*;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+import android.widget.Toast;
+import android.widget.ViewSwitcher;
 
 import com.kanedias.vanilla.plugins.DialogActivity;
 import com.kanedias.vanilla.plugins.PluginConstants;
 import com.kanedias.vanilla.plugins.PluginUtils;
 import com.kanedias.vanilla.plugins.saf.SafRequestActivity;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -59,11 +68,10 @@ import java.util.UUID;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
-import static com.kanedias.vanilla.plugins.PluginConstants.*;
 import static com.kanedias.vanilla.coverfetch.PluginService.pluginInstalled;
+import static com.kanedias.vanilla.plugins.PluginConstants.*;
 import static com.kanedias.vanilla.plugins.PluginUtils.*;
 import static com.kanedias.vanilla.plugins.saf.SafUtils.findInDocumentTree;
-import static com.kanedias.vanilla.plugins.saf.SafUtils.isSafNeeded;
 
 /**
  * Main activity of Cover Fetch plugin. This will be presented as a dialog to the user
@@ -96,13 +104,13 @@ public class CoverShowActivity extends DialogActivity {
 
         mPrefs = PreferenceManager.getDefaultSharedPreferences(this);
 
-        mSwitcher = (ViewSwitcher) findViewById(R.id.loading_switcher);
-        mCoverImage = (ImageView) findViewById(R.id.cover_image);
-        mWriteButton = (Button) findViewById(R.id.write_button);
-        mOkButton = (Button) findViewById(R.id.ok_button);
-        mProgressBar = (ProgressBar) findViewById(R.id.progress_bar);
-        mCustomSearch = (EditText) findViewById(R.id.search_custom);
-        mCustomMedia = (Button) findViewById(R.id.from_custom_media);
+        mSwitcher = findViewById(R.id.loading_switcher);
+        mCoverImage = findViewById(R.id.cover_image);
+        mWriteButton = findViewById(R.id.write_button);
+        mOkButton = findViewById(R.id.ok_button);
+        mProgressBar = findViewById(R.id.progress_bar);
+        mCustomSearch = findViewById(R.id.search_custom);
+        mCustomMedia = findViewById(R.id.from_custom_media);
 
         setupUI();
         handlePassedIntent(true); // called in onCreate to be shown only once
@@ -213,7 +221,7 @@ public class CoverShowActivity extends DialogActivity {
     }
 
     private boolean loadFromFile() {
-        if (!PluginUtils.havePermissions(this, WRITE_EXTERNAL_STORAGE)) {
+        if (PluginUtils.havePermissions(this, WRITE_EXTERNAL_STORAGE)) {
             return false;
         }
 
@@ -253,65 +261,14 @@ public class CoverShowActivity extends DialogActivity {
      * Initialize UI elements with handlers and action listeners
      */
     private void setupUI() {
-        mOkButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                finish();
-            }
-        });
+        mOkButton.setOnClickListener(v -> finish());
         mWriteButton.setOnClickListener(new SelectWriteAction());
         mCustomSearch.setOnEditorActionListener(new CustomSearchQueryListener());
-        mCustomMedia.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                intent.setType("image/*");
-                startActivityForResult(Intent.createChooser(intent, getString(R.string.pick_custom_media)), PICK_IMAGE_REQUEST);
-            }
+        mCustomMedia.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("image/*");
+            startActivityForResult(Intent.createChooser(intent, getString(R.string.pick_custom_media)), PICK_IMAGE_REQUEST);
         });
-    }
-
-    /**
-     * External artwork fetcher (using network). Operates asynchronously, notifies dialog when finishes.
-     * On no result (no artwork, couldn't fetch etc.) shows toast about this, on success updates dialog text.
-     */
-    private class ArtworkFetcher extends AsyncTask<String, Void, byte[]> {
-        @Override
-        protected void onPreExecute() {
-            mSwitcher.setDisplayedChild(0);
-            mProgressBar.setVisibility(VISIBLE);
-        }
-
-        @Override
-        protected byte[] doInBackground(String... params) {
-            if (params.length == 1) {
-                return mEngine.getCover(params[0]);
-            }
-
-            if (params.length == 2) {
-                // artist, album
-                return mEngine.getCover(params[0], params[1]);
-            }
-
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(byte[] imgData) {
-            mProgressBar.setVisibility(View.INVISIBLE);
-
-            if(imgData == null || imgData.length == 0) {
-                // no artwork - show excuse
-                Toast.makeText(CoverShowActivity.this, R.string.cover_not_found, Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            Bitmap raw = BitmapFactory.decodeByteArray(imgData, 0, imgData.length);
-            if (raw == null) {
-                Toast.makeText(CoverShowActivity.this, R.string.invalid_cover_image_format, Toast.LENGTH_LONG).show();
-            }
-            setCoverImage(raw);
-        }
     }
 
     /**
@@ -352,7 +309,7 @@ public class CoverShowActivity extends DialogActivity {
         } finally {
             Intent request = new Intent(ACTION_LAUNCH_PLUGIN);
             request.setPackage(PluginService.PLUGIN_TAG_EDIT_PKG);
-            request.putExtra(EXTRA_PARAM_URI, getIntent().getParcelableExtra(EXTRA_PARAM_URI));
+            request.putExtra(EXTRA_PARAM_URI, (Bundle) getIntent().getParcelableExtra(EXTRA_PARAM_URI));
             request.putExtra(EXTRA_PARAM_PLUGIN_APP, getApplicationInfo());
             request.putExtra(EXTRA_PARAM_P2P, P2P_WRITE_ART);
             if (uri != null) { // artwork write succeeded
@@ -361,6 +318,10 @@ public class CoverShowActivity extends DialogActivity {
             }
             startService(request);
         }
+    }
+
+    private boolean isSafNeeded(File mediaFile) {
+        return false;
     }
 
     /**
@@ -405,7 +366,27 @@ public class CoverShowActivity extends DialogActivity {
         }
     }
 
+    /**
+     * Write through file-based API
+     *
+     * @param data     - data to write
+     * @param original - original media file that was requested by user
+     * @param target   - target file for writing metadata into
+     */
+    private void writeThroughFile(byte[] data, File original, File target) {
+        try {
+            FileOutputStream fos = new FileOutputStream(target);
+            fos.write(data);
+            fos.close();
 
+            // rescan original file
+            MediaScannerConnection.scanFile(this, new String[]{original.getAbsolutePath()}, null, null);
+            Toast.makeText(this, R.string.file_written_successfully, Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Toast.makeText(this, getString(R.string.error_writing_file) + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+            Log.e(LOG_TAG, "Failed to write to file descriptor provided by SAF!", e);
+        }
+    }
 
 
     /**
@@ -455,36 +436,14 @@ public class CoverShowActivity extends DialogActivity {
     }
 
     /**
-     * Write through file-based API
-     * @param data - data to write
-     * @param original - original media file that was requested by user
-     * @param target - target file for writing metadata into
-     */
-    private void writeThroughFile(byte[] data, File  original, File target) {
-        try {
-            FileOutputStream fos = new FileOutputStream(target);
-            fos.write(data);
-            fos.close();
-
-            // rescan original file
-            MediaScannerConnection.scanFile(this, new String[]{original.getAbsolutePath()}, null, null);
-            Toast.makeText(this, R.string.file_written_successfully, Toast.LENGTH_SHORT).show();
-        } catch (Exception e) {
-            Toast.makeText(this, getString(R.string.error_writing_file) + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-            Log.e(LOG_TAG, "Failed to write to file descriptor provided by SAF!", e);
-        }
-    }
-
-    /**
      * This is requested in {@link SelectWriteAction#onClick(View)} case 0.
-     *
+     * <p>
      * Catch it back from {@link PluginUtils#checkAndRequestPermissions(Activity, String)} here.
      * If user declined our request, just do nothing. If not, continue processing and persist the file.
      *
-     * @param requestCode request code that was entered in {@link Activity#requestPermissions(String[], int)}
-     * @param permissions permission array that was entered in {@link Activity#requestPermissions(String[], int)}
+     * @param requestCode  request code that was entered in {@link Activity#requestPermissions(String[], int)}
+     * @param permissions  permission array that was entered in {@link Activity#requestPermissions(String[], int)}
      * @param grantResults results of permission request. Indexes of permissions array are linked with these
-     *
      * @see SelectWriteAction
      * @see PluginUtils
      */
@@ -502,6 +461,49 @@ public class CoverShowActivity extends DialogActivity {
                 // continue persist process started in Write... -> folder.jpg
                 persistAsFolderJpg();
             }
+        }
+    }
+
+    /**
+     * External artwork fetcher (using network). Operates asynchronously, notifies dialog when finishes.
+     * On no result (no artwork, couldn't fetch etc.) shows toast about this, on success updates dialog text.
+     */
+    private class ArtworkFetcher extends AsyncTask<String, Void, byte[]> {
+        @Override
+        protected void onPreExecute() {
+            mSwitcher.setDisplayedChild(0);
+            mProgressBar.setVisibility(VISIBLE);
+        }
+
+        @Override
+        protected byte[] doInBackground(String... params) {
+            if (params.length == 1) {
+                return mEngine.getCover(params[0]);
+            }
+
+            if (params.length == 2) {
+                // artist, album
+                return mEngine.getCover(params[0], params[1]);
+            }
+
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(byte[] imgData) {
+            mProgressBar.setVisibility(View.INVISIBLE);
+
+            if (imgData == null || imgData.length == 0) {
+                // no artwork - show excuse
+                Toast.makeText(CoverShowActivity.this, R.string.cover_not_found, Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            Bitmap raw = BitmapFactory.decodeByteArray(imgData, 0, imgData.length);
+            if (raw == null) {
+                Toast.makeText(CoverShowActivity.this, R.string.invalid_cover_image_format, Toast.LENGTH_LONG).show();
+            }
+            setCoverImage(raw);
         }
     }
 
@@ -541,22 +543,19 @@ public class CoverShowActivity extends DialogActivity {
             }
 
             new AlertDialog.Builder(CoverShowActivity.this)
-                    .setItems(actions.toArray(new CharSequence[0]), new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            switch (which) {
-                                case 0: // to folder
-                                    // onResume will fire both on first launch and on return from permission request
-                                    if (!checkAndRequestPermissions(CoverShowActivity.this, WRITE_EXTERNAL_STORAGE)) {
-                                        return;
-                                    }
+                    .setItems(actions.toArray(new CharSequence[0]), (dialog, which) -> {
+                        switch (which) {
+                            case 0: // to folder
+                                // onResume will fire both on first launch and on return from permission request
+                                if (!checkAndRequestPermissions(CoverShowActivity.this, WRITE_EXTERNAL_STORAGE)) {
+                                    return;
+                                }
 
-                                    persistAsFolderJpg();
-                                    break;
-                                case 1: // to file
-                                    persistToFile();
-                                    break;
-                            }
+                                persistAsFolderJpg();
+                                break;
+                            case 1: // to file
+                                persistToFile();
+                                break;
                         }
                     }).create().show();
         }

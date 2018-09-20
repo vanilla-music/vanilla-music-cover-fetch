@@ -31,7 +31,7 @@ public class CoverArchiveEngine implements CoverEngine {
     public byte[] getCover(String artistName, String albumName) {
         try {
             String releaseGroupQuery = String.format("releasegroup:%s AND artistname:%s", albumName, artistName);
-            return makeApiCall("release-group", releaseGroupQuery);
+            return makeApiCall(releaseGroupQuery);
         } catch (IOException e) {
             Log.w(TAG, "Couldn't connect to musicbrainz/coverartarchive REST endpoints", e);
             return null;
@@ -44,7 +44,7 @@ public class CoverArchiveEngine implements CoverEngine {
     @Override
     public byte[] getCover(String query) {
         try {
-            return makeApiCall("release-group", query);
+            return makeApiCall(query);
         } catch (IOException e) {
             Log.w(TAG, "Couldn't connect to musicbrainz/coverartarchive REST endpoints", e);
             return null;
@@ -57,7 +57,7 @@ public class CoverArchiveEngine implements CoverEngine {
     /**
      * First call
      */
-    private byte[] makeApiCall(String type, String query) throws IOException, JSONException {
+    private byte[] makeApiCall(String query) throws IOException, JSONException {
         HttpsURLConnection apiCall = null;
         try {
             // build query
@@ -65,7 +65,7 @@ public class CoverArchiveEngine implements CoverEngine {
             Uri link = new Uri.Builder()
                     .scheme("https")
                     .authority("musicbrainz.org")
-                    .path("ws/2/"+ type + '/')
+                    .path("ws/2/" + "release-group" + '/')
                     .appendQueryParameter("query", query)
                     .appendQueryParameter("limit", "3")
                     .appendQueryParameter("fmt", "json")
@@ -94,7 +94,7 @@ public class CoverArchiveEngine implements CoverEngine {
             JSONArray relGroups = searchContent.getJSONArray("release-groups");
             return getFirstImage(relGroups);
         } finally {
-            if(apiCall != null) {
+            if (apiCall != null) {
                 apiCall.disconnect();
             }
         }
@@ -102,10 +102,11 @@ public class CoverArchiveEngine implements CoverEngine {
 
     /**
      * Retrieve first available image from retrieved release-groups
+     *
      * @param relGroups array of release groups returned by musicbrainz API call
      * @return byte array with content of first found image for these release-groups or null if nothing found
      * @throws JSONException in case musicbrainz answer differs from wiki page
-     * @throws IOException in case of encoding/connect problems
+     * @throws IOException   in case of encoding/connect problems
      */
     private byte[] getFirstImage(JSONArray relGroups) throws JSONException, IOException {
         for (int i = 0; i < relGroups.length(); ++i) {
@@ -138,7 +139,7 @@ public class CoverArchiveEngine implements CoverEngine {
                 InputStream imgStream = imgCall.getInputStream();
                 return readIt(imgStream);
             } finally {
-                if(imgCall != null) {
+                if (imgCall != null) {
                     imgCall.disconnect();
                 }
             }
@@ -154,8 +155,6 @@ public class CoverArchiveEngine implements CoverEngine {
         while ((count = stream.read(buffer)) != -1) {
             baos.write(buffer, 0, count);
         }
-
         return baos.toByteArray();
     }
-
 }

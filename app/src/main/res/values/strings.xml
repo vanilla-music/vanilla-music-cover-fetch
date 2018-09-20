@@ -1,7 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Vanilla Cover Fetch</string>
     <string name="cover_fetch">Cover fetch</string>
-    <string name="plugin_desc">Allows you to download album covers for requested song</string>
+    <string name="plugin_desc">Allows you to download album covers for requested songs</string>
     <string name="cover_not_found">Cover not found!</string>
     <string name="invalid_cover_image_format">Invalid cover image format!</string>
     <string name="write">Write…</string>

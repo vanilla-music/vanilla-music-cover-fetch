@@ -20,9 +20,11 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ResolveInfo;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.text.TextUtils;
 import android.util.Log;
+
 import com.kanedias.vanilla.plugins.PluginConstants;
 
 import java.util.List;
@@ -103,6 +105,7 @@ public class PluginService extends Service {
 
     /**
      * Sends plugin info back to Vanilla Music service.
+     *
      * @param intent intent from player
      */
     private void handleRequestPluginParams(Intent intent) {
@@ -120,7 +123,7 @@ public class PluginService extends Service {
             mOriginalIntent = intent; // store intent to reuse it if no artwork is found
             Intent getCover = new Intent(ACTION_LAUNCH_PLUGIN);
             getCover.setPackage(PluginService.PLUGIN_TAG_EDIT_PKG);
-            getCover.putExtra(EXTRA_PARAM_URI, intent.getParcelableExtra(EXTRA_PARAM_URI));
+            getCover.putExtra(EXTRA_PARAM_URI, (Bundle) intent.getParcelableExtra(EXTRA_PARAM_URI));
             getCover.putExtra(EXTRA_PARAM_PLUGIN_APP, getApplicationInfo());
             getCover.putExtra(EXTRA_PARAM_P2P, P2P_READ_ART); // no extra params needed
             startService(getCover);
