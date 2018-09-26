@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Oleg Chernovskiy <adonai@xaker.ru>
+ * Copyright (C) 2017-2018 Oleg Chernovskiy <adonai@xaker.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,11 @@ package com.kanedias.vanilla.coverfetch;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
@@ -54,6 +56,7 @@ import com.kanedias.vanilla.plugins.DialogActivity;
 import com.kanedias.vanilla.plugins.PluginConstants;
 import com.kanedias.vanilla.plugins.PluginUtils;
 import com.kanedias.vanilla.plugins.saf.SafRequestActivity;
+import com.kanedias.vanilla.plugins.saf.SafUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -68,7 +71,6 @@ import java.util.UUID;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
-import static com.kanedias.vanilla.coverfetch.PluginService.pluginInstalled;
 import static com.kanedias.vanilla.plugins.PluginConstants.*;
 import static com.kanedias.vanilla.plugins.PluginUtils.*;
 import static com.kanedias.vanilla.plugins.saf.SafUtils.findInDocumentTree;
@@ -77,13 +79,35 @@ import static com.kanedias.vanilla.plugins.saf.SafUtils.findInDocumentTree;
  * Main activity of Cover Fetch plugin. This will be presented as a dialog to the user
  * if one chooses it as the requested plugin.
  * <p/>
+ * This activity must be able to handle ACTION_WAKE_PLUGIN and ACTION_LAUNCH_PLUGIN
+ * intents coming from Vanilla Music.
  *
- * @see PluginService service that launches this
+ * <p/>
+ * Casual conversation looks like this:
+ * <pre>
+ *     VanillaMusic                                 Plugin
+ *          |                                         |
+ *          |       ACTION_WAKE_PLUGIN broadcast      |
+ *          |---------------------------------------->| (plugin init if just installed)
+ *          |                                         |
+ *          | ACTION_REQUEST_PLUGIN_PARAMS broadcast  |
+ *          |---------------------------------------->| (this is handled by BroadcastReceiver)
+ *          |                                         |
+ *          |      ACTION_HANDLE_PLUGIN_PARAMS        |
+ *          |<----------------------------------------| (plugin answer with name and desc)
+ *          |                                         |
+ *          |           ACTION_LAUNCH_PLUGIN          |
+ *          |---------------------------------------->| (plugin is allowed to show window)
+ * </pre>
+ * <p/>
+ *
+ * @see PluginConstants
  *
  * @author Oleg Chernovskiy
  */
 public class CoverShowActivity extends DialogActivity {
 
+    private static final String PLUGIN_TAG_EDIT_PKG = "com.kanedias.vanilla.audiotag";
     private static final int PICK_IMAGE_REQUEST = 1;
 
     private SharedPreferences mPrefs;
@@ -100,9 +124,14 @@ public class CoverShowActivity extends DialogActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_cover_show);
-
         mPrefs = PreferenceManager.getDefaultSharedPreferences(this);
+
+        if (handleLaunchPlugin()) {
+            // no UI was required for handling the intent
+            return;
+        }
+
+        setContentView(R.layout.activity_cover_show);
 
         mSwitcher = findViewById(R.id.loading_switcher);
         mCoverImage = findViewById(R.id.cover_image);
@@ -113,7 +142,42 @@ public class CoverShowActivity extends DialogActivity {
         mCustomMedia = findViewById(R.id.from_custom_media);
 
         setupUI();
-        handlePassedIntent(true); // called in onCreate to be shown only once
+    }
+
+    /**
+     * Handle incoming intent that may possible be ping, other plugin request or user-interactive plugin request
+     * @return true if intent was handled internally, false if activity startup is required
+     */
+    private boolean handleLaunchPlugin() {
+        if (TextUtils.equals(getIntent().getAction(), ACTION_WAKE_PLUGIN)) {
+            // just show that we're okay
+            Log.i(LOG_TAG, "Plugin enabled!");
+            finish();
+            return true;
+        }
+
+        if (!getIntent().hasExtra(EXTRA_PARAM_P2P) && pluginInstalled(this, PLUGIN_TAG_EDIT_PKG)) {
+            // it's user-requested, try to retrieve artwork from the tag first
+            Intent getCover = new Intent(ACTION_LAUNCH_PLUGIN);
+            getCover.setPackage(PLUGIN_TAG_EDIT_PKG);
+            getCover.putExtra(EXTRA_PARAM_URI, (Uri) getIntent().getParcelableExtra(EXTRA_PARAM_URI));
+            getCover.putExtra(EXTRA_PARAM_PLUGIN_APP, getApplicationInfo());
+            getCover.putExtra(EXTRA_PARAM_P2P, P2P_READ_ART); // no extra params needed
+            startActivity(getCover);
+            finish(); // end this activity instance, it will be re-created by incoming intent from Tag Editor
+            return true;
+        }
+
+        // continue startup
+        return false;
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // UI is initialized now
+        handleUiIntent(true);
     }
 
     @Override
@@ -149,17 +213,45 @@ public class CoverShowActivity extends DialogActivity {
                 return true;
             case R.id.reload_option:
                 mSwitcher.setDisplayedChild(0);
-                handlePassedIntent(false);
+                handleUiIntent(false);
                 return true;
         }
         return super.onOptionsItemSelected(item);
     }
 
-    private void handlePassedIntent(boolean useLocal) {
+    /**
+     * This plugin also has P2P functionality with others.
+     * <br/>
+     * Tag plugin - Uses provided field retrieval interface for ARTWORK tag:
+     * <p/>
+     * <pre>
+     *  Cover Fetch Plugin                         Tag Editor Plugin
+     *          |                                         |
+     *          |       P2P intent with artwork request   |
+     *          |---------------------------------------->|
+     *          |                                         |
+     *          |       P2P intent with artwork response  |
+     *          |<----------------------------------------| (can be null if no embedded artwork found)
+     *          |                                         |
+     *
+     *     At this point cover fetcher plugin starts activity with either
+     *     extras from artwork response (if found) or with original intent
+     * </pre>
+     */
+    private static boolean pluginInstalled(Context ctx, String pkgName) {
+        List<ResolveInfo> resolved = ctx.getPackageManager().queryBroadcastReceivers(new Intent(ACTION_REQUEST_PLUGIN_PARAMS), 0);
+        for (ResolveInfo pkg : resolved) {
+            if (TextUtils.equals(pkg.activityInfo.packageName, pkgName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void handleUiIntent(boolean useLocal) {
         // check if this is an answer from tag plugin
         if (useLocal && TextUtils.equals(getIntent().getStringExtra(EXTRA_PARAM_P2P), P2P_READ_ART)) {
-            // already checked this string in service, no need in additional checks
-            if (loadFromTag()) {
+            if (getIntent().hasExtra(EXTRA_PARAM_P2P_VAL) && loadFromTag()) {
                 return;
             }
         }
@@ -308,20 +400,16 @@ public class CoverShowActivity extends DialogActivity {
             Log.e(LOG_TAG, "Couldn't share private cover image file to tag editor!", e);
         } finally {
             Intent request = new Intent(ACTION_LAUNCH_PLUGIN);
-            request.setPackage(PluginService.PLUGIN_TAG_EDIT_PKG);
-            request.putExtra(EXTRA_PARAM_URI, (Bundle) getIntent().getParcelableExtra(EXTRA_PARAM_URI));
+            request.setPackage(PLUGIN_TAG_EDIT_PKG);
+            request.putExtra(EXTRA_PARAM_URI, (Uri) getIntent().getParcelableExtra(EXTRA_PARAM_URI));
             request.putExtra(EXTRA_PARAM_PLUGIN_APP, getApplicationInfo());
             request.putExtra(EXTRA_PARAM_P2P, P2P_WRITE_ART);
             if (uri != null) { // artwork write succeeded
-                grantUriPermission(PluginService.PLUGIN_TAG_EDIT_PKG, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                grantUriPermission(PLUGIN_TAG_EDIT_PKG, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 request.putExtra(EXTRA_PARAM_P2P_VAL, uri);
             }
-            startService(request);
+            startActivity(request);
         }
-    }
-
-    private boolean isSafNeeded(File mediaFile) {
-        return false;
     }
 
     /**
@@ -347,7 +435,7 @@ public class CoverShowActivity extends DialogActivity {
         byte[] imgData = stream.toByteArray();
 
         File folderTarget = new File(mediaFile.getParent(), "folder.jpg");
-        if (isSafNeeded(mediaFile)) {
+        if (SafUtils.isSafNeeded(mediaFile, this)) {
             if (mPrefs.contains(PREF_SDCARD_URI)) {
                 // we already got the permission!
                 writeThroughSaf(imgData, mediaFile, folderTarget.getName());
@@ -407,13 +495,19 @@ public class CoverShowActivity extends DialogActivity {
             return;
         }
 
-        if (originalRef == null) {
+        if (originalRef == null || originalRef.getParentFile() == null) {
             // nothing selected or invalid file?
             Toast.makeText(this, R.string.saf_nothing_selected, Toast.LENGTH_LONG).show();
             return;
         }
 
         DocumentFile folderJpgRef = originalRef.getParentFile().createFile("image/*", name);
+        if (folderJpgRef == null) {
+            // couldn't create file?
+            Toast.makeText(this, R.string.saf_write_error, Toast.LENGTH_LONG).show();
+            return;
+        }
+
         try {
             ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(folderJpgRef.getUri(), "rw");
             if (pfd == null) {
@@ -538,7 +632,7 @@ public class CoverShowActivity extends DialogActivity {
             actions.add(getString(R.string.write_to_folder));
 
             // if tag editor is installed, show `write to tag` button
-            if (pluginInstalled(CoverShowActivity.this, PluginService.PLUGIN_TAG_EDIT_PKG)) {
+            if (pluginInstalled(CoverShowActivity.this, PLUGIN_TAG_EDIT_PKG)) {
                 actions.add(getString(R.string.write_to_file));
             }
 
