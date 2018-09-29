@@ -55,7 +55,7 @@ import android.widget.ViewSwitcher;
 import com.kanedias.vanilla.plugins.DialogActivity;
 import com.kanedias.vanilla.plugins.PluginConstants;
 import com.kanedias.vanilla.plugins.PluginUtils;
-import com.kanedias.vanilla.plugins.saf.SafRequestActivity;
+import com.kanedias.vanilla.plugins.saf.SafPermissionHandler;
 import com.kanedias.vanilla.plugins.saf.SafUtils;
 
 import java.io.ByteArrayOutputStream;
@@ -108,7 +108,7 @@ import static com.kanedias.vanilla.plugins.saf.SafUtils.findInDocumentTree;
 public class CoverShowActivity extends DialogActivity {
 
     private static final String PLUGIN_TAG_EDIT_PKG = "com.kanedias.vanilla.audiotag";
-    private static final int PICK_IMAGE_REQUEST = 1;
+    private static final int PICK_IMAGE_REQUEST = 3;
 
     private SharedPreferences mPrefs;
 
@@ -119,17 +119,20 @@ public class CoverShowActivity extends DialogActivity {
     private EditText mCustomSearch;
     private Button mCustomMedia;
 
+    private SafPermissionHandler mSafHandler;
     private CoverEngine mEngine = new CoverArchiveEngine();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mPrefs = PreferenceManager.getDefaultSharedPreferences(this);
 
         if (handleLaunchPlugin()) {
             // no UI was required for handling the intent
             return;
         }
+
+        mSafHandler = new SafPermissionHandler(this);
+        mPrefs = PreferenceManager.getDefaultSharedPreferences(this);
 
         setContentView(R.layout.activity_cover_show);
 
@@ -318,6 +321,10 @@ public class CoverShowActivity extends DialogActivity {
         }
 
         Uri fileUri = getIntent().getParcelableExtra(EXTRA_PARAM_URI);
+        if (fileUri == null || fileUri.getPath() == null) {
+            return false;
+        }
+
         File media = new File(fileUri.getPath());
         File folderJpg = new File(media.getParentFile(), "folder.jpg");
         if (!folderJpg.exists()) {
@@ -417,7 +424,7 @@ public class CoverShowActivity extends DialogActivity {
      */
     public void persistAsFolderJpg() {
         Uri fileUri = getIntent().getParcelableExtra(EXTRA_PARAM_URI);
-        if (fileUri == null) {
+        if (fileUri == null || fileUri.getPath() == null) {
             // wrong intent passed?
             return;
         }
@@ -442,13 +449,8 @@ public class CoverShowActivity extends DialogActivity {
                 return;
             }
 
-            // request SAF permissions in SAF activity
-            Intent safIntent = new Intent(CoverShowActivity.this, SafRequestActivity.class);
-            safIntent.putExtra(PluginConstants.EXTRA_PARAM_PLUGIN_APP, getApplicationInfo());
-            safIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            safIntent.putExtras(getIntent());
-            startActivity(safIntent);
-            // it will pass us URI back after the work is done
+            // request SAF permissions in SAF handler
+            mSafHandler.handleFile(mediaFile);
         } else {
             writeThroughFile(imgData, mediaFile, folderTarget);
         }
@@ -603,6 +605,12 @@ public class CoverShowActivity extends DialogActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (mSafHandler.onActivityResult(requestCode, resultCode, data)) {
+            // it was SAF request, continue with file persist
+            persistAsFolderJpg();
+            return;
+        }
+
         switch (requestCode) {
             case PICK_IMAGE_REQUEST: // custom image requested
                 if (resultCode != RESULT_OK || data == null || data.getData() == null) {

@@ -19,11 +19,11 @@ package com.kanedias.vanilla.coverfetch;
 import android.net.Uri;
 import android.util.Log;
 
+import com.kanedias.vanilla.plugins.PluginUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -102,7 +102,7 @@ public class CoverArchiveEngine implements CoverEngine {
             }
 
             InputStream is = apiCall.getInputStream();
-            String reply = new String(readIt(is), "UTF-8");
+            String reply = new String(PluginUtils.readFully(is), "UTF-8");
             JSONObject searchContent = new JSONObject(reply);
             if (!searchContent.has("release-groups"))
                 return null;
@@ -153,7 +153,7 @@ public class CoverArchiveEngine implements CoverEngine {
                 }
 
                 InputStream imgStream = imgCall.getInputStream();
-                return readIt(imgStream);
+                return PluginUtils.readFully(imgStream);
             } finally {
                 if (imgCall != null) {
                     imgCall.disconnect();
@@ -161,16 +161,5 @@ public class CoverArchiveEngine implements CoverEngine {
             }
         }
         return null;
-    }
-
-    // Reads an InputStream fully to byte array
-    private byte[] readIt(InputStream stream) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        byte[] buffer = new byte[4096];
-        int count;
-        while ((count = stream.read(buffer)) != -1) {
-            baos.write(buffer, 0, count);
-        }
-        return baos.toByteArray();
     }
 }
