@@ -166,6 +166,7 @@ public class CoverShowActivity extends DialogActivity {
             getCover.putExtra(EXTRA_PARAM_URI, (Uri) getIntent().getParcelableExtra(EXTRA_PARAM_URI));
             getCover.putExtra(EXTRA_PARAM_PLUGIN_APP, getApplicationInfo());
             getCover.putExtra(EXTRA_PARAM_P2P, P2P_READ_ART); // no extra params needed
+            getCover.putExtras(getIntent()); // retain extras in response later
             startActivity(getCover);
             finish(); // end this activity instance, it will be re-created by incoming intent from Tag Editor
             return true;
