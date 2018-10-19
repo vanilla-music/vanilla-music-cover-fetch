@@ -132,7 +132,7 @@ public class CoverArchiveEngine implements CoverEngine {
             HttpURLConnection imgCall = null;
             try {
                 // e.g. http://coverartarchive.org/release-group/4741866d-c3a5-47ca-944d-732c2cc9e651/front-500
-                Uri imgLink = new Uri.Builder().scheme("http")
+                Uri imgLink = new Uri.Builder().scheme("https")
                         .authority("coverartarchive.org")
                         .path("release-group")
                         .appendPath(mbid)

@@ -7,8 +7,8 @@ android {
         applicationId "com.kanedias.vanilla.coverfetch"
         minSdkVersion 14
         targetSdkVersion 28
-        versionCode 9
-        versionName "1.4.1"
+        versionCode 10
+        versionName "1.4.2"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
@@ -22,7 +22,10 @@ android {
     }
 
     buildTypes {
-        debug {}
+        debug {
+            applicationIdSuffix = ".debug"
+        }
+
         release {
             zipAlignEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
