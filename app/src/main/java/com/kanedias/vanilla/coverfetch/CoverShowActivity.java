@@ -122,6 +122,8 @@ public class CoverShowActivity extends DialogActivity {
     private SafPermissionHandler mSafHandler;
     private CoverEngine mEngine = new CoverArchiveEngine();
 
+    private Runnable postPermissionAction;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -253,6 +255,12 @@ public class CoverShowActivity extends DialogActivity {
     }
 
     private void handleUiIntent(boolean useLocal) {
+        // check if we already have cover loaded
+        if (useLocal && mCoverImage.getDrawable() != null) {
+            return;
+        }
+
+        // we don't have it loaded
         // check if this is an answer from tag plugin
         if (useLocal && TextUtils.equals(getIntent().getStringExtra(EXTRA_PARAM_P2P), P2P_READ_ART)) {
             if (getIntent().hasExtra(EXTRA_PARAM_P2P_VAL) && loadFromTag()) {
@@ -261,12 +269,12 @@ public class CoverShowActivity extends DialogActivity {
         }
 
         // we didn't receive artwork from tag plugin
-
         // try to retrieve from folder.jpg
         if (useLocal && loadFromFile()) {
             return;
         }
 
+        // we can't find image in any of the local sources or were explicitly guided to load from network
         // try to retrieve it via artwork engine
         String artist = getIntent().getStringExtra(EXTRA_PARAM_SONG_ARTIST);
         if (artist != null && artist.contains("No Artist")) {
@@ -423,7 +431,12 @@ public class CoverShowActivity extends DialogActivity {
     /**
      * Click listener for handling writing tag as folder.jpg
      */
-    public void persistAsFolderJpg() {
+    public void persistAsSeparateFile(String name) {
+        if (!checkAndRequestPermissions(CoverShowActivity.this, WRITE_EXTERNAL_STORAGE)) {
+            postPermissionAction = () -> persistAsSeparateFile(name);
+            return;
+        }
+
         Uri fileUri = getIntent().getParcelableExtra(EXTRA_PARAM_URI);
         if (fileUri == null || fileUri.getPath() == null) {
             // wrong intent passed?
@@ -442,7 +455,7 @@ public class CoverShowActivity extends DialogActivity {
         bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream);
         byte[] imgData = stream.toByteArray();
 
-        File folderTarget = new File(mediaFile.getParent(), "folder.jpg");
+        File folderTarget = new File(mediaFile.getParent(), name);
         if (SafUtils.isSafNeeded(mediaFile, this)) {
             if (mPrefs.contains(PREF_SDCARD_URI)) {
                 // we already got the permission!
@@ -451,6 +464,7 @@ public class CoverShowActivity extends DialogActivity {
             }
 
             // request SAF permissions in SAF handler
+            postPermissionAction = () -> persistAsSeparateFile(name);
             mSafHandler.handleFile(mediaFile);
         } else {
             writeThroughFile(imgData, mediaFile, folderTarget);
@@ -556,7 +570,10 @@ public class CoverShowActivity extends DialogActivity {
             if (TextUtils.equals(permissions[i], WRITE_EXTERNAL_STORAGE)
                     && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
                 // continue persist process started in Write... -> folder.jpg
-                persistAsFolderJpg();
+                if (postPermissionAction != null) {
+                    postPermissionAction.run();
+                    postPermissionAction = null;
+                }
             }
         }
     }
@@ -608,7 +625,10 @@ public class CoverShowActivity extends DialogActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (mSafHandler.onActivityResult(requestCode, resultCode, data)) {
             // it was SAF request, continue with file persist
-            persistAsFolderJpg();
+            if (postPermissionAction != null) {
+                postPermissionAction.run();
+                postPermissionAction = null;
+            }
             return;
         }
 
@@ -639,6 +659,7 @@ public class CoverShowActivity extends DialogActivity {
         public void onClick(View v) {
             List<String> actions = new ArrayList<>();
             actions.add(getString(R.string.write_to_folder));
+            actions.add(getString(R.string.write_to_custom_file));
 
             // if tag editor is installed, show `write to tag` button
             if (pluginInstalled(CoverShowActivity.this, PLUGIN_TAG_EDIT_PKG)) {
@@ -646,22 +667,35 @@ public class CoverShowActivity extends DialogActivity {
             }
 
             new AlertDialog.Builder(CoverShowActivity.this)
-                    .setItems(actions.toArray(new CharSequence[0]), (dialog, which) -> {
-                        switch (which) {
+                    .setItems(actions.toArray(new CharSequence[0]), (_d, option) -> {
+                        switch (option) {
                             case 0: // to folder
-                                // onResume will fire both on first launch and on return from permission request
-                                if (!checkAndRequestPermissions(CoverShowActivity.this, WRITE_EXTERNAL_STORAGE)) {
-                                    return;
-                                }
-
-                                persistAsFolderJpg();
+                                persistAsSeparateFile("folder.jpg");
                                 break;
-                            case 1: // to file
+                            case 1:
+                                handleCustomFilename();
+                                break;
+                            case 2: // to file
                                 persistToFile();
                                 break;
                         }
                     }).create().show();
         }
+    }
+
+    /**
+     * User requested to save cover in a file with custom name, create appropriate dialog and
+     * let them enter the name manually.
+     */
+    private void handleCustomFilename() {
+        EditText editor = new EditText(CoverShowActivity.this);
+        editor.setHint(R.string.enter_filename);
+        new AlertDialog.Builder(CoverShowActivity.this)
+                .setTitle(R.string.write_to_custom_file)
+                .setView(editor)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(android.R.string.ok, (_d, which) -> persistAsSeparateFile(editor.getText().toString()))
+                .show();
     }
 
     /**

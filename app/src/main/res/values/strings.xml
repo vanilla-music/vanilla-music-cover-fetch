@@ -22,4 +22,6 @@
     <string name="pick_custom_media">Pick custom media</string>
     <string name="error_decoding_image">Error decoding image: </string>
     <string name="reload">Reload</string>
+    <string name="write_to_custom_file">Write to custom file</string>
+    <string name="enter_filename">Enter filename</string>
 </resources>
