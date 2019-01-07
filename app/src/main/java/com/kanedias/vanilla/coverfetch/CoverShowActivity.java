@@ -18,11 +18,9 @@ package com.kanedias.vanilla.coverfetch;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
@@ -225,35 +223,6 @@ public class CoverShowActivity extends DialogActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    /**
-     * This plugin also has P2P functionality with others.
-     * <br/>
-     * Tag plugin - Uses provided field retrieval interface for ARTWORK tag:
-     * <p/>
-     * <pre>
-     *  Cover Fetch Plugin                         Tag Editor Plugin
-     *          |                                         |
-     *          |       P2P intent with artwork request   |
-     *          |---------------------------------------->|
-     *          |                                         |
-     *          |       P2P intent with artwork response  |
-     *          |<----------------------------------------| (can be null if no embedded artwork found)
-     *          |                                         |
-     *
-     *     At this point cover fetcher plugin starts activity with either
-     *     extras from artwork response (if found) or with original intent
-     * </pre>
-     */
-    private static boolean pluginInstalled(Context ctx, String pkgName) {
-        List<ResolveInfo> resolved = ctx.getPackageManager().queryBroadcastReceivers(new Intent(ACTION_REQUEST_PLUGIN_PARAMS), 0);
-        for (ResolveInfo pkg : resolved) {
-            if (TextUtils.equals(pkg.activityInfo.packageName, pkgName)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private void handleUiIntent(boolean useLocal) {
         // check if we already have cover loaded
         if (useLocal && mCoverImage.getDrawable() != null) {
@@ -411,7 +380,7 @@ public class CoverShowActivity extends DialogActivity {
             fos.close();
 
             // create sharable uri
-            uri = FileProvider.getUriForFile(CoverShowActivity.this, "com.kanedias.vanilla.coverfetch.fileprovider", coverTmpFile);
+            uri = FileProvider.getUriForFile(CoverShowActivity.this, BuildConfig.APPLICATION_ID + ".fileprovider", coverTmpFile);
         } catch (IOException e) {
             Log.e(LOG_TAG, "Couldn't share private cover image file to tag editor!", e);
         } finally {
@@ -499,22 +468,25 @@ public class CoverShowActivity extends DialogActivity {
      */
     private void writeThroughSaf(byte[] data, File original, String name) {
         DocumentFile originalRef;
-        if (mPrefs.contains(PREF_SDCARD_URI)) {
-            // no sorcery can allow you to gain URI to the document representing file you've been provided with
-            // you have to find it again now using Document API
+        // no sorcery can allow you to gain URI to the document representing file you've been provided with
+        // you have to find it again now using Document API
 
-            // /storage/volume/Music/some.mp3 will become [storage, volume, music, some.mp3]
-            List<String> pathSegments = new ArrayList<>(Arrays.asList(original.getAbsolutePath().split("/")));
-            Uri allowedSdRoot = Uri.parse(mPrefs.getString(PREF_SDCARD_URI, ""));
-            originalRef = findInDocumentTree(DocumentFile.fromTreeUri(this, allowedSdRoot), pathSegments);
-        } else {
-            // user will click the button again
-            return;
-        }
+        // /storage/volume/Music/some.mp3 will become [storage, volume, music, some.mp3]
+        List<String> pathSegments = new ArrayList<>(Arrays.asList(original.getAbsolutePath().split("/")));
+        Uri allowedSdRoot = Uri.parse(mPrefs.getString(PREF_SDCARD_URI, ""));
+        originalRef = findInDocumentTree(DocumentFile.fromTreeUri(this, allowedSdRoot), pathSegments);
 
         if (originalRef == null || originalRef.getParentFile() == null) {
             // nothing selected or invalid file?
             Toast.makeText(this, R.string.saf_nothing_selected, Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        // check again that we have access to this file
+        if (!originalRef.canWrite()) {
+            // we don't. User selected wrong URI for sdcard access?
+            postPermissionAction = () -> persistAsSeparateFile(name);
+            mSafHandler.handleFile(original);
             return;
         }
 
