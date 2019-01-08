@@ -22,23 +22,23 @@ android {
     }
 
     buildTypes {
-        debug {
-            applicationIdSuffix = ".debug"
-        }
-
         release {
-            zipAlignEnabled true
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
+        }
+        debug {
+            zipAlignEnabled true
+            applicationIdSuffix = ".debug"
         }
     }
 
     lintOptions {
-        disable 'MissingTranslation'
-        disable 'ExtraTranslation'
+        disable 'MissingTranslation', 'ExtraTranslation'
     }
 
     compileOptions {
+        encoding = 'UTF-8'
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }

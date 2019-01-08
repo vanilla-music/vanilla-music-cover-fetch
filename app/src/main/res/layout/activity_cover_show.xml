@@ -6,8 +6,8 @@
     android:focusableInTouchMode="true"
     android:orientation="vertical"
     android:paddingLeft="16dp"
-    android:paddingRight="16dp"
     android:paddingTop="8dp"
+    android:paddingRight="16dp"
     tools:context=".CoverShowActivity">
 
     <EditText
@@ -48,9 +48,9 @@
             android:id="@+id/cover_image"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:maxHeight="300dp"
             android:layout_gravity="top|center_horizontal"
-            android:adjustViewBounds="true" />
+            android:adjustViewBounds="true"
+            android:maxHeight="300dp" />
 
     </ViewSwitcher>
 
