@@ -199,7 +199,7 @@ public class CoverShowActivity extends DialogActivity {
                 case R.id.reload_option:
                 case R.id.custom_option:
                     // show only when loading is complete
-                    item.setVisible(mSwitcher.getDisplayedChild() == 1);
+                    item.setVisible(mSwitcher != null && mSwitcher.getDisplayedChild() == 1);
                     continue;
                 default:
                     break;
