@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Vanilla Artwork Ophalen</string>
+    <string name="cover_fetch">Artwork ophalen</string>
+    <string name="plugin_desc">Download artwork van een album voor bepaalde nummers</string>
+    <string name="cover_not_found">Artwork niet gevonden!</string>
+    <string name="invalid_cover_image_format">Ongeldig afbeeldingsformaat voor artwork!</string>
+    <string name="write">Schrijf</string>
+    <string name="write_to_file">Schrijf naar een bestandstag</string>
+    <string name="write_to_folder">Schrijf naar folder.jpg</string>
+    <string name="file_written_successfully">Bestand is succesvol weggeschreven!</string>
+    <string name="error_writing_file">Fout bij schrijven bestand: </string>
+    <string name="custom_album">Maatwerkalbum</string>
+    <string name="custom">Maatwerk</string>
+    <string name="from_custom_media">Uit maatwerkmedia</string>
+    <string name="pick_custom_media">Kies maatwerkmedia</string>
+    <string name="error_decoding_image">Fout bij decoderen van afbeelding: </string>
+    <string name="reload">Herlaad</string>
+    <string name="write_to_custom_file">Schrijf naar maatwerkbestand</string>
+    <string name="enter_filename">Voer bestandsnaam in</string>
+</resources>
