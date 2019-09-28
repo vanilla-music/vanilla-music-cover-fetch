@@ -51,4 +51,5 @@ play {
 
 dependencies {
     implementation 'com.github.vanilla-music:vanilla-music-plugin-commons:1.0.3'
+    implementation 'androidx.core:core:1.1.0' // Android FileProvider
 }
