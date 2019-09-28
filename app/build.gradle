@@ -7,8 +7,8 @@ android {
         applicationId "com.kanedias.vanilla.coverfetch"
         minSdkVersion 14
         targetSdkVersion 28
-        versionCode 13
-        versionName "1.4.5"
+        versionCode 14
+        versionName "1.4.6"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
@@ -45,10 +45,10 @@ android {
 }
 
 play {
-    jsonFile = file("misc/android-publisher-account.json")
+    serviceAccountCredentials = file("misc/android-publisher-account.json")
     track = 'production'
 }
 
 dependencies {
-    implementation 'com.github.vanilla-music:vanilla-music-plugin-commons:1.0.1'
+    implementation 'com.github.vanilla-music:vanilla-music-plugin-commons:1.0.3'
 }
