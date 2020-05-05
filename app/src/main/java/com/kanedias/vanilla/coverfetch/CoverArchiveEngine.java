@@ -45,7 +45,7 @@ public class CoverArchiveEngine implements CoverEngine {
     private static final String TAG = CoverArchiveEngine.class.getSimpleName();
 
     @Override
-    public byte[] getCover(String trackName, String artistName, String albumName, String fileName) {
+    public byte[] getCover(String trackName, String artistName, String albumName) {
         try {
             if (trackName != null && artistName != null) {
                 return makeApiCall(String.format("recording:%s AND artistname:%s", trackName, artistName));
@@ -55,12 +55,13 @@ public class CoverArchiveEngine implements CoverEngine {
                 return makeApiCall(String.format("recording:%s AND releasegroup:%s", trackName, albumName));
             }
 
+            // cover can be found by artist + album
             if (artistName != null && albumName != null) {
                 return makeApiCall(String.format("releasegroup:%s AND artistname:%s", albumName, artistName));
             }
 
-            return makeApiCall(String.format("recording:%s", fileName));
-
+            // even then track gives us pretty good idea what can it be
+            return makeApiCall(String.format("recording:%s", trackName));
         } catch (IOException e) {
             Log.w(TAG, "Couldn't connect to musicbrainz/coverartarchive REST endpoints", e);
             return null;

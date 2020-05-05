@@ -34,7 +34,6 @@ import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -44,9 +43,8 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.SearchView;
-import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.ViewSwitcher;
+import android.widget.ViewFlipper;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.FileProvider;
@@ -69,7 +67,6 @@ import java.util.List;
 import java.util.UUID;
 
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
-import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
 import static com.kanedias.vanilla.plugins.PluginConstants.*;
 import static com.kanedias.vanilla.plugins.PluginUtils.*;
@@ -113,7 +110,7 @@ public class CoverShowActivity extends DialogActivity {
     private SharedPreferences mPrefs;
 
     private ImageView mCoverImage;
-    private ViewSwitcher mSwitcher;
+    private ViewFlipper mSwitcher;
     private Button mOkButton, mWriteButton;
     private ProgressBar mProgressBar;
 
@@ -225,7 +222,7 @@ public class CoverShowActivity extends DialogActivity {
                 case R.id.open_local_option:
                 case R.id.custom_search_option:
                     // show only when loading is complete
-                    item.setVisible(mSwitcher != null && mSwitcher.getDisplayedChild() == 1);
+                    item.setVisible(mSwitcher != null && mSwitcher.getDisplayedChild() != 0);
                     continue;
                 default:
                     break;
@@ -278,6 +275,18 @@ public class CoverShowActivity extends DialogActivity {
         String title = getIntent().getStringExtra(EXTRA_PARAM_SONG_TITLE);
         if (title != null && title.contains("No Title")) {
             title = null;
+
+            // use file name
+            Uri fileUri = getIntent().getParcelableExtra(EXTRA_PARAM_URI);
+            if (fileUri != null) {
+                String fileName = fileUri.getLastPathSegment();
+                if (fileName != null) {
+                    int extensionStart = fileName.lastIndexOf(".");
+                    if (extensionStart > 0) {
+                        title = fileName.substring(0, extensionStart);
+                    }
+                }
+            }
         }
         String artist = getIntent().getStringExtra(EXTRA_PARAM_SONG_ARTIST);
         if (artist != null && artist.contains("No Artist")) {
@@ -288,17 +297,7 @@ public class CoverShowActivity extends DialogActivity {
             album = null;
         }
 
-        Uri fileUri = getIntent().getParcelableExtra(EXTRA_PARAM_URI);
-        String fileName = null;
-        if (fileUri != null) {
-            fileName = fileUri.getLastPathSegment();
-            int extensionStart = fileName.lastIndexOf(".");
-            if (extensionStart > 0) {
-                fileName = fileName.substring(0, extensionStart);
-            }
-        }
-
-        new ArtworkFetcher().execute(title, artist, album, fileName);
+        new ArtworkFetcher().execute(title, artist, album);
     }
 
     private boolean loadFromTag() {
@@ -347,17 +346,14 @@ public class CoverShowActivity extends DialogActivity {
         return true;
     }
 
+    /**
+     * Set the actual cover image for the user to see
+     *
+     * @param raw raw image bitmap. Should never be null
+     */
     private void setCoverImage(Bitmap raw) {
-        Drawable image;
-        if (raw == null) {
-            // we don't have bitmap, show sad cloud
-            image = getResources().getDrawable(R.drawable.sad_cloud);
-            mWriteButton.setEnabled(false);
-        } else {
-            // we have some bitmap
-            image = new BitmapDrawable(getResources(), raw);
-            mWriteButton.setEnabled(true);
-        }
+        Drawable image = new BitmapDrawable(getResources(), raw);
+        mWriteButton.setEnabled(true);
 
         mCoverImage.setImageDrawable(image);
         mSwitcher.setDisplayedChild(1);
@@ -589,7 +585,7 @@ public class CoverShowActivity extends DialogActivity {
 
         @Override
         protected byte[] doInBackground(String... params) {
-            return mEngine.getCover(params[0], params[1], params[2], params[3]);
+            return mEngine.getCover(params[0], params[1], params[2]);
         }
 
         @Override
@@ -599,7 +595,8 @@ public class CoverShowActivity extends DialogActivity {
             if (imgData == null || imgData.length == 0) {
                 // no artwork - show excuse
                 Toast.makeText(CoverShowActivity.this, R.string.cover_not_found, Toast.LENGTH_SHORT).show();
-                setCoverImage(null);
+                mSwitcher.setDisplayedChild(2);
+                invalidateOptionsMenu();
                 return;
             }
 
