@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Random;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -44,23 +45,22 @@ public class CoverArchiveEngine implements CoverEngine {
     private static final String TAG = CoverArchiveEngine.class.getSimpleName();
 
     @Override
-    public byte[] getCover(String artistName, String albumName) {
+    public byte[] getCover(String trackName, String artistName, String albumName, String fileName) {
         try {
-            String releaseGroupQuery = String.format("releasegroup:%s AND artistname:%s", albumName, artistName);
-            return makeApiCall(releaseGroupQuery);
-        } catch (IOException e) {
-            Log.w(TAG, "Couldn't connect to musicbrainz/coverartarchive REST endpoints", e);
-            return null;
-        } catch (JSONException e) {
-            Log.w(TAG, "Couldn't transform API answer to JSON entity", e);
-            return null;
-        }
-    }
+            if (trackName != null && artistName != null) {
+                return makeApiCall(String.format("recording:%s AND artistname:%s", trackName, artistName));
+            }
 
-    @Override
-    public byte[] getCover(String query) {
-        try {
-            return makeApiCall(query);
+            if (trackName != null && albumName != null) {
+                return makeApiCall(String.format("recording:%s AND releasegroup:%s", trackName, albumName));
+            }
+
+            if (artistName != null && albumName != null) {
+                return makeApiCall(String.format("releasegroup:%s AND artistname:%s", albumName, artistName));
+            }
+
+            return makeApiCall(String.format("recording:%s", fileName));
+
         } catch (IOException e) {
             Log.w(TAG, "Couldn't connect to musicbrainz/coverartarchive REST endpoints", e);
             return null;
@@ -108,7 +108,7 @@ public class CoverArchiveEngine implements CoverEngine {
                 return null;
 
             JSONArray relGroups = searchContent.getJSONArray("release-groups");
-            return getFirstImage(relGroups);
+            return getRandomImage(relGroups);
         } finally {
             if (apiCall != null) {
                 apiCall.disconnect();
@@ -117,16 +117,20 @@ public class CoverArchiveEngine implements CoverEngine {
     }
 
     /**
-     * Retrieve first available image from retrieved release-groups
+     * Retrieve random available image from retrieved release-groups
      *
      * @param relGroups array of release groups returned by musicbrainz API call
      * @return byte array with content of first found image for these release-groups or null if nothing found
      * @throws JSONException in case musicbrainz answer differs from wiki page
      * @throws IOException   in case of encoding/connect problems
      */
-    private byte[] getFirstImage(JSONArray relGroups) throws JSONException, IOException {
-        for (int i = 0; i < relGroups.length(); ++i) {
-            JSONObject relGroup = relGroups.getJSONObject(i);
+    private byte[] getRandomImage(JSONArray relGroups) throws JSONException, IOException {
+        Random rand = new Random();
+
+        // try 15 random release groups
+        for (int i = 0; i < 15; ++i) {
+            int idx = rand.nextInt(relGroups.length());
+            JSONObject relGroup = relGroups.getJSONObject(idx);
             String mbid = relGroup.getString("id"); // musicbrainz ID, must be present and in UUID form
 
             HttpURLConnection imgCall = null;

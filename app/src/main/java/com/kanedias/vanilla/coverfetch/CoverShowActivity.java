@@ -246,6 +246,10 @@ public class CoverShowActivity extends DialogActivity {
 
         // we can't find image in any of the local sources or were explicitly guided to load from network
         // try to retrieve it via artwork engine
+        String title = getIntent().getStringExtra(EXTRA_PARAM_SONG_TITLE);
+        if (title != null && title.contains("No Title")) {
+            title = null;
+        }
         String artist = getIntent().getStringExtra(EXTRA_PARAM_SONG_ARTIST);
         if (artist != null && artist.contains("No Artist")) {
             artist = null;
@@ -255,22 +259,17 @@ public class CoverShowActivity extends DialogActivity {
             album = null;
         }
 
-        if (album != null && artist != null) {
-            new ArtworkFetcher().execute(artist, album);
-        } else if (album != null) {
-            new ArtworkFetcher().execute(album);
-        } else if (artist != null) {
-            new ArtworkFetcher().execute(artist);
-        } else {
-            // album and artist both are null, take filename
-            Uri fileUri = getIntent().getParcelableExtra(EXTRA_PARAM_URI);
-            String fileName = fileUri.getLastPathSegment();
+        Uri fileUri = getIntent().getParcelableExtra(EXTRA_PARAM_URI);
+        String fileName = null;
+        if (fileUri != null) {
+            fileName = fileUri.getLastPathSegment();
             int extensionStart = fileName.lastIndexOf(".");
             if (extensionStart > 0) {
                 fileName = fileName.substring(0, extensionStart);
             }
-            new ArtworkFetcher().execute(fileName);
         }
+
+        new ArtworkFetcher().execute(title, artist, album, fileName);
     }
 
     private boolean loadFromTag() {
@@ -322,7 +321,8 @@ public class CoverShowActivity extends DialogActivity {
     private void setCoverImage(Bitmap raw) {
         Drawable image;
         if (raw == null) {
-            image = null;
+            // we don't have bitmap, show sad cloud
+            image = getResources().getDrawable(R.drawable.sad_cloud);
             mWriteButton.setEnabled(false);
         } else {
             // we have some bitmap
@@ -558,22 +558,15 @@ public class CoverShowActivity extends DialogActivity {
     private class ArtworkFetcher extends AsyncTask<String, Void, byte[]> {
         @Override
         protected void onPreExecute() {
+            // switch view flipper to the progress bar, hide menus
             mSwitcher.setDisplayedChild(0);
             mProgressBar.setVisibility(VISIBLE);
+            invalidateOptionsMenu();
         }
 
         @Override
         protected byte[] doInBackground(String... params) {
-            if (params.length == 1) {
-                return mEngine.getCover(params[0]);
-            }
-
-            if (params.length == 2) {
-                // artist, album
-                return mEngine.getCover(params[0], params[1]);
-            }
-
-            return null;
+            return mEngine.getCover(params[0], params[1], params[2], params[3]);
         }
 
         @Override
@@ -583,6 +576,7 @@ public class CoverShowActivity extends DialogActivity {
             if (imgData == null || imgData.length == 0) {
                 // no artwork - show excuse
                 Toast.makeText(CoverShowActivity.this, R.string.cover_not_found, Toast.LENGTH_SHORT).show();
+                setCoverImage(null);
                 return;
             }
 
