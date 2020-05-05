@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Vanilla borítóletöltő</string>
+    <string name="app_name">Borítóletöltő</string>
     <string name="cover_fetch">Borítóletöltő</string>
     <string name="plugin_desc">A segítségével letöltheti az albumborítót a kért számhoz</string>
     <string name="cover_not_found">Nem található borító.</string>

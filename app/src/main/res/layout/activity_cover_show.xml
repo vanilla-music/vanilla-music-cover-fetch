@@ -10,26 +10,6 @@
     android:paddingRight="16dp"
     tools:context=".CoverShowActivity">
 
-    <EditText
-        android:id="@+id/search_custom"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="15dp"
-        android:layout_marginRight="15dp"
-        android:hint="@string/custom_album"
-        android:imeOptions="actionSearch"
-        android:inputType="textCapWords"
-        android:visibility="gone" />
-
-    <Button
-        android:id="@+id/from_custom_media"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="15dp"
-        android:layout_marginRight="15dp"
-        android:hint="@string/from_custom_media"
-        android:visibility="gone" />
-
     <ViewSwitcher
         android:id="@+id/loading_switcher"
         android:layout_width="match_parent"

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Vanilla Artwork Ophalen</string>
+    <string name="app_name">Artwork Ophalen</string>
     <string name="cover_fetch">Artwork ophalen</string>
     <string name="plugin_desc">Download artwork van een album voor bepaalde nummers</string>
     <string name="cover_not_found">Artwork niet gevonden!</string>

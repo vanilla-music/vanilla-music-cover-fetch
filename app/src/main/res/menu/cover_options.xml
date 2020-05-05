@@ -1,15 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
-        android:id="@+id/custom_option"
-        android:icon="@drawable/edit"
+        android:id="@+id/custom_search_option"
+        android:icon="@drawable/search"
+        android:actionViewClass="android.widget.SearchView"
         android:showAsAction="always"
         android:title="@string/custom" />
 
     <item
+        android:id="@+id/open_local_option"
+        android:icon="@drawable/open_local"
+        android:showAsAction="ifRoom"
+        android:title="@string/open_local" />
+
+    <item
         android:id="@+id/reload_option"
         android:icon="@drawable/refresh"
-        android:showAsAction="always"
+        android:showAsAction="ifRoom"
         android:title="@string/reload" />
 
 </menu>

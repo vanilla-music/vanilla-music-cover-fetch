@@ -43,6 +43,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ViewSwitcher;
@@ -115,8 +116,6 @@ public class CoverShowActivity extends DialogActivity {
     private ViewSwitcher mSwitcher;
     private Button mOkButton, mWriteButton;
     private ProgressBar mProgressBar;
-    private EditText mCustomSearch;
-    private Button mCustomMedia;
 
     private SafPermissionHandler mSafHandler;
     private CoverEngine mEngine = new CoverArchiveEngine();
@@ -142,8 +141,6 @@ public class CoverShowActivity extends DialogActivity {
         mWriteButton = findViewById(R.id.write_button);
         mOkButton = findViewById(R.id.ok_button);
         mProgressBar = findViewById(R.id.progress_bar);
-        mCustomSearch = findViewById(R.id.search_custom);
-        mCustomMedia = findViewById(R.id.from_custom_media);
 
         setupUI();
     }
@@ -194,11 +191,39 @@ public class CoverShowActivity extends DialogActivity {
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
+        // setup search
+        MenuItem customSearch = menu.findItem(R.id.custom_search_option);
+        SearchView searchView = (SearchView) customSearch.getActionView();
+
+        int searchImgId = getResources().getIdentifier("android:id/search_button", null, null);
+        ImageView v = searchView.findViewById(searchImgId);
+        v.setImageResource(R.drawable.search);
+
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                new ArtworkFetcher().execute(query, null, null, null);
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                return false;
+            }
+        });
+        searchView.setOnCloseListener(() -> {
+            // other items can come out of overflow menu now
+            invalidateOptionsMenu();
+            return false;
+        });
+
+        // setup simple options
         for (int i = 0; i < menu.size(); i++) {
             MenuItem item = menu.getItem(i);
             switch (item.getItemId()) {
                 case R.id.reload_option:
-                case R.id.custom_option:
+                case R.id.open_local_option:
+                case R.id.custom_search_option:
                     // show only when loading is complete
                     item.setVisible(mSwitcher != null && mSwitcher.getDisplayedChild() == 1);
                     continue;
@@ -212,9 +237,13 @@ public class CoverShowActivity extends DialogActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            case R.id.custom_option:
-                mCustomSearch.setVisibility(mCustomSearch.getVisibility() == VISIBLE ? GONE : VISIBLE);
-                mCustomMedia.setVisibility(mCustomMedia.getVisibility() == VISIBLE ? GONE : VISIBLE);
+            case R.id.custom_search_option:
+                // search view handles these
+                return true;
+            case R.id.open_local_option:
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                intent.setType("image/*");
+                startActivityForResult(Intent.createChooser(intent, getString(R.string.pick_custom_media)), PICK_IMAGE_REQUEST);
                 return true;
             case R.id.reload_option:
                 mSwitcher.setDisplayedChild(0);
@@ -341,12 +370,6 @@ public class CoverShowActivity extends DialogActivity {
     private void setupUI() {
         mOkButton.setOnClickListener(v -> finish());
         mWriteButton.setOnClickListener(new SelectWriteAction());
-        mCustomSearch.setOnEditorActionListener(new CustomSearchQueryListener());
-        mCustomMedia.setOnClickListener(v -> {
-            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-            intent.setType("image/*");
-            startActivityForResult(Intent.createChooser(intent, getString(R.string.pick_custom_media)), PICK_IMAGE_REQUEST);
-        });
     }
 
     /**
@@ -663,17 +686,5 @@ public class CoverShowActivity extends DialogActivity {
                 .setNegativeButton(android.R.string.cancel, null)
                 .setPositiveButton(android.R.string.ok, (_d, which) -> persistAsSeparateFile(editor.getText().toString()))
                 .show();
-    }
-
-    /**
-     * Listener which submits query to the artwork execution engine
-     */
-    private class CustomSearchQueryListener implements TextView.OnEditorActionListener {
-
-        @Override
-        public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-            new ArtworkFetcher().execute(v.getText().toString());
-            return true;
-        }
     }
 }
