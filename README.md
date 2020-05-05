@@ -1,3 +1,11 @@
+[![Travis (.org)](https://img.shields.io/travis/vanilla-music/vanilla-music-cover-fetch)](https://travis-ci.org/github/vanilla-music/vanilla-music-cover-fetch)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/vanilla-music/vanilla-music-cover-fetch)](https://github.com/vanilla-music/vanilla-music-cover-fetch/releases)
+[![F-Droid](https://img.shields.io/f-droid/v/com.kanedias.vanilla.coverfetch)](https://f-droid.org/en/packages/com.kanedias.vanilla.coverfetch/)
+[![License GPLv3+](https://img.shields.io/badge/License-GPLv3-brightgreen.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
+
+
+
+
 # Vanilla Music Player Cover Fetch Plugin
 
 This repository hosts the Cover Fetch plugin for Vanilla Music.
@@ -30,7 +38,7 @@ Note that this plugin requires an internet connection to actually be useful.
 
 # License
 
-    Copyright (C) 2016-present Oleg Chernovskiy
+    Copyright (C) 2016-2020 Oleg `Kanedias` Chernovskiy
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
