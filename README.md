@@ -16,11 +16,11 @@ Note that this plugin requires an internet connection to actually be useful.
 
 <a href="https://f-droid.org/packages/com.kanedias.vanilla.coverfetch/">
     <img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png"
-        alt="Get it on F-Droid" height="80"/>
+        alt="Get it on F-Droid" height="60"/>
 </a>
 <a href="https://play.google.com/store/apps/details?id=com.kanedias.vanilla.coverfetch">
     <img src="https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png"
-        alt="Get it on Google Play" height="80"/>
+        alt="Get it on Google Play" height="60"/>
 </a>
 
 # Features
@@ -34,7 +34,7 @@ Note that this plugin requires an internet connection to actually be useful.
 
 [<img alt="Patreon Page"
     src="https://s3.amazonaws.com/patreon_public_assets/toolbox/patreon.png"
-    height="80"/>](https://www.patreon.com/kanedias)
+    height="40"/>](https://www.patreon.com/kanedias)
 
 # License
 
