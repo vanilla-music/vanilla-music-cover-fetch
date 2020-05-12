@@ -126,8 +126,11 @@ public class CoverArchiveEngine implements CoverEngine {
      * @throws IOException   in case of encoding/connect problems
      */
     private byte[] getRandomImage(JSONArray relGroups) throws JSONException, IOException {
-        Random rand = new Random();
+        if (relGroups.length() == 0) {
+            return null;
+        }
 
+        Random rand = new Random();
         // try 15 random release groups
         for (int i = 0; i < 15; ++i) {
             int idx = rand.nextInt(relGroups.length());
